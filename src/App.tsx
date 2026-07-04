@@ -450,10 +450,14 @@ function YouScreen() {
         })}
       </div>
       <div className="t-eyebrow" style={{ margin: "4px 0 12px" }}>Your log</div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
         <button className="btn-ghost" style={{ flex: 1 }} onClick={doExport}>Export cabinet</button>
         <button className="btn-ghost" style={{ flex: 1 }} onClick={doImport}>Import</button>
       </div>
+      <button className="btn-ghost" style={{ marginBottom: 14, borderColor: "var(--stamp)", color: "var(--stamp)" }}
+        onClick={() => { if (confirm("Reset everything? Clears your log, cabinet, achievements and onboarding — handy for testing.")) { localStorage.clear(); location.reload(); } }}>
+        🧪 Reset app (clear all data)
+      </button>
       {log.length === 0 ? (
         <p className="t-soft" style={{ fontSize: 13.5 }}>Nothing yet — your stamped curios will show up here, newest first.</p>
       ) : (
