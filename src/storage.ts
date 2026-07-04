@@ -89,3 +89,16 @@ export function importData(json: string): boolean {
     return true;
   } catch { return false; }
 }
+
+// Current streak = consecutive days up to today (or yesterday) with a logged curio.
+export function currentStreak(): number {
+  const days = new Set(getLog().map((e) => e.date));
+  if (days.size === 0) return 0;
+  const d = new Date();
+  const key = (dt: Date) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+  // allow the streak to "hold" if today isn't logged yet but yesterday was
+  if (!days.has(key(d))) d.setDate(d.getDate() - 1);
+  let streak = 0;
+  while (days.has(key(d))) { streak++; d.setDate(d.getDate() - 1); }
+  return streak;
+}

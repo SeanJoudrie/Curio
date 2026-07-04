@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import type { Challenge, LogEntry } from "./types";
-import { skillById, SKILLS } from "./data/challenges";
+import { skillById, SKILLS, CHALLENGES } from "./data/challenges";
 import { todaysCurio, dealHand, rightNowCurio, MOODS, type Mood } from "./deck";
-import { addLogEntry, addSkip, completedToday, getLog, skillsTried, todayStr, nudgeBoost, isOnboarded, setOnboarded, setBoosts, exportData, importData } from "./storage";
+import { addLogEntry, addSkip, completedToday, getLog, skillsTried, todayStr, nudgeBoost, isOnboarded, setOnboarded, setBoosts, getBoosts, exportData, importData, currentStreak } from "./storage";
 import { shareCard } from "./share";
 import { Sketch } from "./Sketch";
 import { ACHIEVEMENTS, unlockedIds, popNewUnlocks, type Achievement } from "./achievements";
@@ -309,9 +309,10 @@ function CabinetScreen() {
   const tried = bySkill.size;
   return (
     <div className="screen">
-      <div style={{ textAlign: "center", margin: "10px 0 20px" }}>
+      <div style={{ textAlign: "center", margin: "10px 0 18px" }}>
         <div className="t-display" style={{ fontSize: 44, color: "var(--teal)" }}>{tried}</div>
         <div className="t-label" style={{ color: "var(--ink-soft)" }}>{tried === 1 ? "skill tried" : "skills tried"} · {log.length} {log.length === 1 ? "curio" : "curios"} logged</div>
+        {currentStreak() > 1 && <div style={{ marginTop: 10 }}><span className="streak">🔥 {currentStreak()}-day rhythm</span></div>}
       </div>
       {tried === 0 ? (
         <div className="card" style={{ textAlign: "center", padding: 32 }}>
@@ -344,28 +345,62 @@ function CabinetScreen() {
   );
 }
 
+type CatFilter = "all" | "date" | "free" | "splurge" | "quick" | "todo";
+const CAT_FILTERS: { id: CatFilter; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "todo", label: "Not done" },
+  { id: "date", label: "💞 Date" },
+  { id: "quick", label: "⏱ Quick" },
+  { id: "free", label: "Free" },
+  { id: "splurge", label: "✨ Splurge" },
+];
+
 function CatalogScreen({ openDetail }: { openDetail: (c: Challenge) => void }) {
+  const [q, setQ] = useState("");
+  const [filter, setFilter] = useState<CatFilter>("all");
+  const [drawer, setDrawer] = useState<string>("");
   const done = new Set(getLog().map((e) => e.challengeId));
-  const { SKILLS, CHALLENGES } = require_challenges();
+
+  const matches = (c: Challenge) => {
+    if (drawer && c.skillId !== drawer) return false;
+    if (q && !(c.title.toLowerCase().includes(q.toLowerCase()) || (skillById(c.skillId)?.name.toLowerCase().includes(q.toLowerCase())))) return false;
+    if (filter === "date") return !!c.together;
+    if (filter === "free") return c.budget.cost === "free";
+    if (filter === "splurge") return c.budget.cost === "splurge";
+    if (filter === "quick") return c.budget.time === "2m" || c.budget.time === "15m";
+    if (filter === "todo") return !done.has(c.id);
+    return true;
+  };
+  const results = CHALLENGES.filter(matches);
+
   return (
     <div className="screen">
-      <div className="t-eyebrow" style={{ margin: "4px 0 12px" }}>The catalog · {CHALLENGES.length} challenges, growing</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 18, paddingBottom: 16 }}>
-        {SKILLS.map((s) => {
-          const cs = CHALLENGES.filter((c) => c.skillId === s.id);
-          if (cs.length === 0) return null;
-          return (
-            <div key={s.id}>
-              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 6 }}>{s.name} <span className="t-tag t-soft">· {s.oneLiner}</span></div>
-              {cs.map((c) => (
-                <button key={c.id} onClick={() => openDetail(c)} style={{ display: "flex", width: "100%", textAlign: "left", gap: 8, padding: "7px 0", borderBottom: "1px solid var(--line)", alignItems: "baseline" }}>
-                  <span style={{ fontSize: 13.5, flex: 1, color: done.has(c.id) ? "var(--ink-soft)" : "var(--ink)" }}>{done.has(c.id) ? "✓ " : ""}{c.title}</span>
-                  <span className="t-tag t-soft">{TIME_LABEL[c.budget.time]}</span>
-                </button>
-              ))}
+      <div className="t-eyebrow" style={{ margin: "4px 0 10px" }}>Catalog · {CHALLENGES.length} activities</div>
+      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search 171 activities…"
+        style={{ width: "100%", padding: "11px 14px", fontSize: 14, fontFamily: "inherit", background: "var(--paper-card)", border: "1px solid var(--line-strong)", borderRadius: 12, color: "var(--ink)", marginBottom: 10 }} />
+      <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 10 }}>
+        {CAT_FILTERS.map((f) => (
+          <button key={f.id} className={`chip${filter === f.id ? " on" : ""}`} onClick={() => setFilter(f.id)}>{f.label}</button>
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 12 }}>
+        <button className={`chip${drawer === "" ? " on" : ""}`} onClick={() => setDrawer("")}>All drawers</button>
+        {SKILLS.map((s) => (
+          <button key={s.id} className={`chip${drawer === s.id ? " on" : ""}`} onClick={() => setDrawer(drawer === s.id ? "" : s.id)}>{s.name}</button>
+        ))}
+      </div>
+      <div className="t-tag t-soft" style={{ marginBottom: 8 }}>{results.length} {results.length === 1 ? "match" : "matches"}</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingBottom: 16 }}>
+        {results.map((c) => (
+          <button key={c.id} onClick={() => openDetail(c)} style={{ display: "flex", width: "100%", textAlign: "left", gap: 11, padding: "9px 11px", background: "var(--paper-card)", border: "1px solid var(--line)", borderRadius: 12, alignItems: "center" }}>
+            <div style={{ flex: "none", opacity: done.has(c.id) ? 0.5 : 1 }}><Sketch id={c.id} skillId={c.skillId} size={40} /></div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13.5, fontWeight: 600, color: done.has(c.id) ? "var(--ink-soft)" : "var(--ink)" }}>{done.has(c.id) ? "✓ " : ""}{c.title}</div>
+              <div className="t-tag t-soft" style={{ marginTop: 2 }}>{skillById(c.skillId)?.name} · {TIME_LABEL[c.budget.time]} · {COST_LABEL[c.budget.cost]}{c.together ? " · 💞" : ""}</div>
             </div>
-          );
-        })}
+          </button>
+        ))}
+        {results.length === 0 && <p className="t-soft" style={{ fontSize: 13.5, textAlign: "center", padding: 20 }}>Nothing matches that — try clearing a filter.</p>}
       </div>
     </div>
   );
@@ -411,8 +446,37 @@ function Onboarding({ onDone }: { onDone: (firstWin?: Challenge) => void }) {
   );
 }
 
+const AFFINITY = ["muted", "less", "default", "more", "boosted"]; // -2..2 → index+2
+function TuneDeck() {
+  const [, force] = useState(0);
+  const boosts = getBoosts();
+  const cycle = (id: string) => {
+    const b = getBoosts();
+    const next = ((b[id] ?? 0) + 3) > 2 ? -2 : (b[id] ?? 0) + 1; // cycle -2..2 wrapping
+    setBoosts({ ...b, [id]: next });
+    force((n) => n + 1);
+  };
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 18 }}>
+      {SKILLS.map((s) => {
+        const v = boosts[s.id] ?? 0;
+        const label = AFFINITY[v + 2].toUpperCase();
+        const color = v > 0 ? "var(--teal)" : v < 0 ? "var(--stamp)" : "var(--ink-soft)";
+        return (
+          <button key={s.id} onClick={() => cycle(s.id)} style={{ display: "flex", width: "100%", alignItems: "center", gap: 10, padding: "9px 13px", background: "var(--paper-card)", border: "1px solid var(--line)", borderRadius: 10, textAlign: "left" }}>
+            <span style={{ flex: 1, fontSize: 13, fontWeight: 600 }}>{s.name}</span>
+            <span className="t-tag" style={{ color, borderColor: color === "var(--ink-soft)" ? "var(--line-strong)" : color, border: "1px solid", borderRadius: 999, padding: "3px 10px" }}>{v > 0 ? "+" + v + " " : v < 0 ? v + " " : ""}{label}</span>
+          </button>
+        );
+      })}
+      <p className="t-soft" style={{ fontSize: 11.5, textAlign: "center", marginTop: 4 }}>Tap to cycle. Boosted drawers appear more; muted ones leave the daily deck (still in the Catalog).</p>
+    </div>
+  );
+}
+
 function YouScreen() {
   const log = getLog();
+  const [tuneOpen, setTuneOpen] = useState(false);
   const doExport = () => {
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([exportData()], { type: "application/json" }));
@@ -449,6 +513,10 @@ function YouScreen() {
           );
         })}
       </div>
+      <button className="btn-ghost" style={{ marginBottom: tuneOpen ? 12 : 18, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 14px" }} onClick={() => setTuneOpen((o) => !o)}>
+        <span>🎛️ Tune my deck</span><span className="t-soft">{tuneOpen ? "▲" : "▼"}</span>
+      </button>
+      {tuneOpen && <TuneDeck />}
       <div className="t-eyebrow" style={{ margin: "4px 0 12px" }}>Your log</div>
       <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
         <button className="btn-ghost" style={{ flex: 1 }} onClick={doExport}>Export cabinet</button>
