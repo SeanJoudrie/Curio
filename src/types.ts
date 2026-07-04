@@ -16,6 +16,7 @@ export interface Challenge {
   skillId: string;
   title: string;
   level: Level;
+  ladderStep?: number; // rung within a skill's ladder
   microLesson: string;
   task: string;
   stages?: { day: string; task: string }[];
@@ -35,5 +36,6 @@ export interface LogEntry {
   rating: 1 | 2 | 3 | 4 | 5;
   tag?: "boring" | "too-hard" | "not-me";
   note?: string;
+  photoRef?: string; // compressed data-URL thumbnail — evidence for future-you
   date: string; // YYYY-MM-DD local
 }

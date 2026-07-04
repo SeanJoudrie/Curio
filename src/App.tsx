@@ -137,7 +137,7 @@ function TodayScreen({ view, setView }: { view: View; setView: (v: View) => void
         <button className="btn-link" style={{ alignSelf: "flex-start", paddingLeft: 0 }} onClick={() => setView({ kind: "home" })}>‹ Back</button>
         <div className="t-eyebrow" style={{ marginBottom: 12 }}>Today's hand — {hand.length} cards, that's the deal</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 12, paddingBottom: 16 }}>
-          {hand.map((c) => <ChallengeCard key={c.id} c={c} onOpen={() => setView({ kind: "detail", challenge: c })} />)}
+          {hand.map((c) => <div key={c.id} className="deal"><ChallengeCard c={c} onOpen={() => setView({ kind: "detail", challenge: c })} /></div>)}
         </div>
         <p className="t-soft" style={{ fontSize: 12.5, textAlign: "center", paddingBottom: 16 }}>That's today's hand. Tomorrow deals fresh.</p>
       </div>
@@ -190,9 +190,30 @@ function TodayScreen({ view, setView }: { view: View; setView: (v: View) => void
   );
 }
 
+function compressPhoto(file: File): Promise<string> {
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.onload = () => {
+      const max = 480;
+      const s = Math.min(1, max / Math.max(img.width, img.height));
+      const cv = document.createElement("canvas");
+      cv.width = img.width * s;
+      cv.height = img.height * s;
+      cv.getContext("2d")!.drawImage(img, 0, 0, cv.width, cv.height);
+      res(cv.toDataURL("image/jpeg", 0.7));
+    };
+    img.onerror = rej;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+const buzz = (ms: number) => navigator.vibrate?.(ms);
+
 function StampScreen({ challenge, onDone }: { challenge: Challenge; onDone: (r: number, note?: string) => void }) {
   const [rating, setRating] = useState<number>(0);
   const [note, setNote] = useState("");
+  const [tag, setTag] = useState<LogEntry["tag"]>(undefined);
+  const [photo, setPhoto] = useState<string | undefined>(undefined);
   return (
     <div className="screen" style={{ justifyContent: "center", textAlign: "center" }}>
       <div className="t-label" style={{ letterSpacing: "0.12em" }}>◦ DONE ◦</div>
@@ -200,10 +221,22 @@ function StampScreen({ challenge, onDone }: { challenge: Challenge; onDone: (r: 
       <p className="t-soft" style={{ fontSize: 13.5, marginBottom: 20 }}>{challenge.title}</p>
       <div className="stamp-row">
         {[1, 2, 3, 4, 5].map((n) => (
-          <button key={n} className={`stamp${rating === n ? " sel" : ""}`} onClick={() => setRating(n)} aria-label={`Rate ${n}: ${RATING_LABEL[n]}`}>{n}</button>
+          <button key={n} className={`stamp${rating === n ? " sel" : ""}`} onClick={() => { setRating(n); buzz(15); if (n > 2) setTag(undefined); }} aria-label={`Rate ${n}: ${RATING_LABEL[n]}`}>{n}</button>
         ))}
       </div>
       <p className="t-soft" style={{ fontSize: 12.5, marginTop: 10, minHeight: 18 }}>{rating ? `${rating} · ${RATING_LABEL[rating]}` : " "}</p>
+      {rating > 0 && rating <= 2 && (
+        <div style={{ display: "flex", gap: 6, justifyContent: "center", marginTop: 4, flexWrap: "wrap" }}>
+          {([["boring", "Boring"], ["too-hard", "Too hard"], ["not-me", "Not my thing"]] as const).map(([id, label]) => (
+            <button key={id} className={`chip${tag === id ? " on" : ""}`} onClick={() => setTag(tag === id ? undefined : id)}>{label}</button>
+          ))}
+        </div>
+      )}
+      <label className="btn-link" style={{ display: "block", marginTop: 8 }}>
+        {photo ? "\ud83d\udcf7 Photo attached \u2713" : "\ud83d\udcf7 Attach a photo (optional)"}
+        <input type="file" accept="image/*" capture="environment" style={{ display: "none" }}
+          onChange={async (e) => { const f = e.target.files?.[0]; if (f) setPhoto(await compressPhoto(f)); }} />
+      </label>
       <input
         value={note}
         onChange={(e) => setNote(e.target.value)}
@@ -221,10 +254,14 @@ function StampScreen({ challenge, onDone }: { challenge: Challenge; onDone: (r: 
           onClick={() => {
             const entry: LogEntry = { challengeId: challenge.id, rating: rating as LogEntry["rating"], date: todayStr() };
             if (note.trim()) entry.note = note.trim();
+            if (tag) entry.tag = tag;
+            if (photo) entry.photoRef = photo;
             addLogEntry(entry);
-            // Every stamp quietly tunes the deck (CURIO.md §4).
+            buzz(35); // the thunk
+            // Every stamp quietly tunes the deck (CURIO.md §4) — tag-aware:
+            // "too hard" means offer easier, not mute the whole drawer.
             if (rating >= 4) nudgeBoost(challenge.skillId, 1);
-            else if (rating <= 2) nudgeBoost(challenge.skillId, -1);
+            else if (rating <= 2 && tag !== "too-hard") nudgeBoost(challenge.skillId, -1);
             onDone(rating, entry.note);
           }}
         >
@@ -266,7 +303,7 @@ function CabinetScreen() {
                 </div>
                 <div style={{ display: "flex", gap: 5, marginTop: 9 }}>
                   {Array.from({ length: count }).map((_, i) => (
-                    <div key={i} style={{ width: 14, height: 14, borderRadius: 4, background: ["var(--teal)", "var(--ochre)", "var(--stamp)", "var(--plum)", "var(--gold)"][i % 5] }} />
+                    <div key={i} className={i === count - 1 ? "token-land" : undefined} style={{ width: 14, height: 14, borderRadius: 4, background: ["var(--teal)", "var(--ochre)", "var(--stamp)", "var(--plum)", "var(--gold)"][i % 5] }} />
                   ))}
                 </div>
               </div>
@@ -386,6 +423,7 @@ function YouScreen() {
                 </div>
                 <div className="t-tag t-soft" style={{ marginTop: 3 }}>{e.date}</div>
                 {e.note && <div className="t-soft" style={{ fontSize: 13, fontStyle: "italic", marginTop: 6 }}>"{e.note}"</div>}
+                {e.photoRef && <img src={e.photoRef} alt="" style={{ width: "100%", borderRadius: 8, marginTop: 8, border: "1px solid var(--line)" }} />}
               </div>
             );
           })}

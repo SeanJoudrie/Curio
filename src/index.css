@@ -157,3 +157,33 @@ button { font: inherit; border: none; background: none; color: inherit; cursor: 
 }
 .tabbar button.on { color: var(--teal); }
 .tabbar svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ============ signature motion (CURIO.md §18): calm, 150-350ms, one thing at a time ============ */
+@keyframes deal-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.deal { animation: deal-in 0.28s ease both; }
+.deal:nth-child(2) { animation-delay: 0.05s; }
+.deal:nth-child(3) { animation-delay: 0.1s; }
+.deal:nth-child(4) { animation-delay: 0.15s; }
+.deal:nth-child(5) { animation-delay: 0.2s; }
+.deal:nth-child(6) { animation-delay: 0.25s; }
+
+@keyframes stamp-press {
+  0% { transform: rotate(0) scale(1); }
+  45% { transform: rotate(-8deg) scale(0.86); }
+  100% { transform: rotate(-8deg) scale(1.12); }
+}
+.stamp.sel { animation: stamp-press 0.22s ease both; }
+
+@keyframes token-land {
+  0% { opacity: 0; transform: translateY(-18px) scale(1.4); }
+  70% { opacity: 1; transform: translateY(2px) scale(0.96); }
+  100% { transform: translateY(0) scale(1); }
+}
+.token-land { animation: token-land 0.35s ease both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .deal, .stamp.sel, .token-land { animation: none; }
+}
