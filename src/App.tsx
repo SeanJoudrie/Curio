@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
 import type { Challenge, LogEntry } from "./types";
-import { skillById } from "./data/challenges";
-import { todaysCurio, dealHand } from "./deck";
-import { addLogEntry, addSkip, completedToday, getLog, skillsTried, todayStr } from "./storage";
+import { skillById, SKILLS } from "./data/challenges";
+import { todaysCurio, dealHand, rightNowCurio, MOODS, type Mood } from "./deck";
+import { addLogEntry, addSkip, completedToday, getLog, skillsTried, todayStr, nudgeBoost, isOnboarded, setOnboarded, setBoosts, exportData, importData } from "./storage";
+import { shareCard } from "./share";
 
 type Tab = "today" | "cabinet" | "catalog" | "you";
 type View =
@@ -10,7 +11,7 @@ type View =
   | { kind: "hand" }
   | { kind: "detail"; challenge: Challenge }
   | { kind: "stamp"; challenge: Challenge }
-  | { kind: "done"; challenge: Challenge; rating: number };
+  | { kind: "done"; challenge: Challenge; rating: number; note?: string };
 
 const TIME_LABEL: Record<string, string> = { "2m": "2 MIN", "15m": "15 MIN", "1h": "1 HR", "half-day": "HALF-DAY", "multi-day": "MULTI-DAY" };
 const COST_LABEL: Record<string, string> = { free: "FREE", cheap: "CHEAP", splurge: "SPLURGE" };
@@ -54,9 +55,11 @@ function ChallengeCard({ c, hero, onOpen }: { c: Challenge; hero?: boolean; onOp
 
 function TodayScreen({ view, setView }: { view: View; setView: (v: View) => void }) {
   const [rerolls, setRerolls] = useState(0);
+  const [mood, setMood] = useState<Mood>("any");
   const done = completedToday();
-  const curio = useMemo(() => todaysCurio(rerolls), [rerolls]);
-  const hand = useMemo(() => dealHand(curio.id), [curio.id]);
+  const curio = useMemo(() => todaysCurio(rerolls, mood), [rerolls, mood]);
+  const rightNow = useMemo(() => rightNowCurio(), []);
+  const hand = useMemo(() => dealHand(curio.id, mood), [curio.id, mood]);
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning." : hour < 18 ? "Good afternoon." : "Good evening.";
   const tried = skillsTried().size;
@@ -107,7 +110,7 @@ function TodayScreen({ view, setView }: { view: View; setView: (v: View) => void
   }
 
   if (view.kind === "stamp") {
-    return <StampScreen challenge={view.challenge} onDone={(rating) => setView({ kind: "done", challenge: view.challenge, rating })} />;
+    return <StampScreen challenge={view.challenge} onDone={(rating, note) => setView({ kind: "done", challenge: view.challenge, rating, note })} />;
   }
 
   if (view.kind === "done") {
@@ -121,7 +124,8 @@ function TodayScreen({ view, setView }: { view: View; setView: (v: View) => void
         </p>
         <p className="t-soft" style={{ fontSize: 13 }}>Tomorrow's curio is already picked.</p>
         <div style={{ padding: "18px 0" }}>
-          <button className="btn-primary" onClick={() => setView({ kind: "home" })}>Back to today</button>
+          <button className="btn-primary" onClick={() => shareCard(view.challenge, view.rating, view.note)}>Share today's curio</button>
+          <button className="btn-ghost" style={{ marginTop: 8 }} onClick={() => setView({ kind: "home" })}>Back to today</button>
         </div>
       </div>
     );
@@ -157,6 +161,20 @@ function TodayScreen({ view, setView }: { view: View; setView: (v: View) => void
         </div>
       ) : (
         <>
+          <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 12, marginBottom: 2 }}>
+            {MOODS.map((m) => (
+              <button key={m.id} className={`chip${mood === m.id ? " on" : ""}`} onClick={() => { setMood(m.id); setRerolls(0); }}>{m.label}</button>
+            ))}
+          </div>
+          {rightNow && (
+            <button onClick={() => setView({ kind: "detail", challenge: rightNow })} style={{ display: "block", width: "100%", textAlign: "left", marginBottom: 14 }}>
+              <div className="card" style={{ padding: "12px 15px", display: "flex", alignItems: "center", gap: 12 }}>
+                <span className="t-label" style={{ flex: "none" }}>RIGHT NOW · 2 MIN</span>
+                <span style={{ fontSize: 13.5, fontWeight: 600, flex: 1 }}>{rightNow.title}</span>
+                <span className="t-soft">›</span>
+              </div>
+            </button>
+          )}
           <div className="t-eyebrow" style={{ marginBottom: 8 }}>Today's Curio</div>
           <ChallengeCard c={curio} hero onOpen={() => setView({ kind: "detail", challenge: curio })} />
           <div style={{ padding: "12px 0 16px" }}>
@@ -172,7 +190,7 @@ function TodayScreen({ view, setView }: { view: View; setView: (v: View) => void
   );
 }
 
-function StampScreen({ challenge, onDone }: { challenge: Challenge; onDone: (r: number) => void }) {
+function StampScreen({ challenge, onDone }: { challenge: Challenge; onDone: (r: number, note?: string) => void }) {
   const [rating, setRating] = useState<number>(0);
   const [note, setNote] = useState("");
   return (
@@ -204,7 +222,10 @@ function StampScreen({ challenge, onDone }: { challenge: Challenge; onDone: (r: 
             const entry: LogEntry = { challengeId: challenge.id, rating: rating as LogEntry["rating"], date: todayStr() };
             if (note.trim()) entry.note = note.trim();
             addLogEntry(entry);
-            onDone(rating);
+            // Every stamp quietly tunes the deck (CURIO.md §4).
+            if (rating >= 4) nudgeBoost(challenge.skillId, 1);
+            else if (rating <= 2) nudgeBoost(challenge.skillId, -1);
+            onDone(rating, entry.note);
           }}
         >
           Stamp &amp; log it
@@ -290,11 +311,67 @@ function require_challenges() {
   return { SKILLS: _SKILLS, CHALLENGES: _CHALLENGES };
 }
 
+function Onboarding({ onDone }: { onDone: (firstWin?: Challenge) => void }) {
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const toggle = (id: string) => {
+    const s = new Set(picked);
+    s.has(id) ? s.delete(id) : s.add(id);
+    setPicked(s);
+  };
+  const finish = () => {
+    const boosts: Record<string, number> = {};
+    picked.forEach((id) => (boosts[id] = 1));
+    setBoosts(boosts);
+    setOnboarded();
+    onDone(rightNowCurio()); // guaranteed first win: a 60-sec curio, right now (CURIO.md §14)
+  };
+  return (
+    <div className="app">
+      <div className="screen">
+        <div className="t-label" style={{ margin: "18px 0 6px" }}>1 OF 2 · TUNE YOUR DECK</div>
+        <h1 className="t-display">Which of these pull at you?</h1>
+        <p className="t-soft" style={{ fontSize: 13.5, margin: "8px 0 16px" }}>Tap a few — or none. "Surprise me" is a completely valid answer. You can change all of this later.</p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignContent: "flex-start", flex: 1 }}>
+          {SKILLS.map((s) => (
+            <button key={s.id} className={`chip${picked.has(s.id) ? " on" : ""}`} onClick={() => toggle(s.id)}>{s.name}</button>
+          ))}
+        </div>
+        <div style={{ padding: "16px 0" }}>
+          <button className="btn-primary" onClick={finish}>{picked.size > 0 ? "Continue" : "Surprise me"}</button>
+          <p className="t-soft" style={{ fontSize: 12, textAlign: "center", marginTop: 10 }}>Step 2 is a 60-second curio you'll finish before you leave. Everything lives on your phone.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function YouScreen() {
   const log = getLog();
+  const doExport = () => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([exportData()], { type: "application/json" }));
+    a.download = `curio-cabinet-${todayStr()}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+  const doImport = () => {
+    const inp = document.createElement("input");
+    inp.type = "file";
+    inp.accept = "application/json";
+    inp.onchange = async () => {
+      const f = inp.files?.[0];
+      if (f && importData(await f.text())) location.reload();
+      else alert("That file didn't look like a Curio cabinet.");
+    };
+    inp.click();
+  };
   return (
     <div className="screen">
       <div className="t-eyebrow" style={{ margin: "4px 0 12px" }}>Your log</div>
+      <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+        <button className="btn-ghost" style={{ flex: 1 }} onClick={doExport}>Export cabinet</button>
+        <button className="btn-ghost" style={{ flex: 1 }} onClick={doImport}>Import</button>
+      </div>
       {log.length === 0 ? (
         <p className="t-soft" style={{ fontSize: 13.5 }}>Nothing yet — your stamped curios will show up here, newest first.</p>
       ) : (
@@ -328,7 +405,19 @@ const ICONS: Record<Tab, React.ReactNode> = {
 export default function App() {
   const [tab, setTab] = useState<Tab>("today");
   const [view, setView] = useState<View>({ kind: "home" });
+  const [onboarded, setOnboardedState] = useState(isOnboarded());
   const focused = view.kind === "detail" || view.kind === "stamp" || view.kind === "done";
+
+  if (!onboarded) {
+    return (
+      <Onboarding
+        onDone={(firstWin) => {
+          setOnboardedState(true);
+          if (firstWin) setView({ kind: "detail", challenge: firstWin });
+        }}
+      />
+    );
+  }
 
   return (
     <div className="app">
