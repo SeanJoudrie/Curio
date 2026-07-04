@@ -4,6 +4,8 @@ import { skillById, SKILLS } from "./data/challenges";
 import { todaysCurio, dealHand, rightNowCurio, MOODS, type Mood } from "./deck";
 import { addLogEntry, addSkip, completedToday, getLog, skillsTried, todayStr, nudgeBoost, isOnboarded, setOnboarded, setBoosts, exportData, importData } from "./storage";
 import { shareCard } from "./share";
+import { Sketch } from "./Sketch";
+import { ACHIEVEMENTS, unlockedIds, popNewUnlocks, type Achievement } from "./achievements";
 
 type Tab = "today" | "cabinet" | "catalog" | "you";
 type View =
@@ -11,7 +13,7 @@ type View =
   | { kind: "hand" }
   | { kind: "detail"; challenge: Challenge }
   | { kind: "stamp"; challenge: Challenge }
-  | { kind: "done"; challenge: Challenge; rating: number; note?: string };
+  | { kind: "done"; challenge: Challenge; rating: number; note?: string; newUnlocks?: Achievement[] };
 
 const TIME_LABEL: Record<string, string> = { "2m": "2 MIN", "15m": "15 MIN", "1h": "1 HR", "half-day": "HALF-DAY", "multi-day": "MULTI-DAY" };
 const COST_LABEL: Record<string, string> = { free: "FREE", cheap: "CHEAP", splurge: "SPLURGE" };
@@ -44,8 +46,13 @@ function ChallengeCard({ c, hero, onOpen }: { c: Challenge; hero?: boolean; onOp
     <button onClick={onOpen} style={{ display: "block", width: "100%", textAlign: "left" }}>
       <div className="card" style={hero ? { padding: 20 } : {}}>
         <div className="wash" />
-        <div className="t-eyebrow">{skill?.name} · {LEVEL_LABEL[c.level]}</div>
-        <div className={hero ? "t-display" : "t-title"} style={{ margin: "8px 0 10px" }}>{c.title}</div>
+        <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+          <div style={{ flex: 1 }}>
+            <div className="t-eyebrow">{skill?.name} · {LEVEL_LABEL[c.level]}</div>
+            <div className={hero ? "t-display" : "t-title"} style={{ margin: "8px 0 10px" }}>{c.title}</div>
+          </div>
+          <div style={{ flex: "none", opacity: 0.9 }}><Sketch id={c.id} skillId={c.skillId} size={hero ? 60 : 50} /></div>
+        </div>
         <div className="t-soft" style={{ fontSize: 13.5, marginBottom: 14 }}>{c.microLesson.split(". ")[0] + "."}</div>
         <Tags c={c} />
       </div>
@@ -63,6 +70,7 @@ function TodayScreen({ view, setView }: { view: View; setView: (v: View) => void
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning." : hour < 18 ? "Good afternoon." : "Good evening.";
   const tried = skillsTried().size;
+  const todayCount = getLog().filter((e) => e.date === todayStr()).length;
 
   if (view.kind === "detail") {
     const c = view.challenge;
@@ -70,8 +78,13 @@ function TodayScreen({ view, setView }: { view: View; setView: (v: View) => void
     return (
       <div className="screen">
         <button className="btn-link" style={{ alignSelf: "flex-start", paddingLeft: 0 }} onClick={() => setView({ kind: "home" })}>‹ Today</button>
-        <div className="t-eyebrow">{skill?.name} · {LEVEL_LABEL[c.level]}</div>
-        <h1 className="t-title" style={{ fontSize: 26, margin: "6px 0 16px" }}>{c.title}</h1>
+        <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+          <div style={{ flex: 1 }}>
+            <div className="t-eyebrow">{skill?.name} · {LEVEL_LABEL[c.level]}</div>
+            <h1 className="t-title" style={{ fontSize: 24, margin: "6px 0 16px" }}>{c.title}</h1>
+          </div>
+          <div style={{ flex: "none" }}><Sketch id={c.id} skillId={c.skillId} size={64} /></div>
+        </div>
         <div style={{ flex: 1 }}>
           <Field k="Micro-lesson">{c.microLesson}</Field>
           {c.stages ? (
@@ -110,22 +123,35 @@ function TodayScreen({ view, setView }: { view: View; setView: (v: View) => void
   }
 
   if (view.kind === "stamp") {
-    return <StampScreen challenge={view.challenge} onDone={(rating, note) => setView({ kind: "done", challenge: view.challenge, rating, note })} />;
+    return <StampScreen challenge={view.challenge} onDone={(rating, note) => setView({ kind: "done", challenge: view.challenge, rating, note, newUnlocks: popNewUnlocks() })} />;
   }
 
   if (view.kind === "done") {
-    const skill = skillById(view.challenge.skillId);
+    const nowToday = getLog().filter((e) => e.date === todayStr()).length;
     return (
       <div className="screen" style={{ justifyContent: "center", textAlign: "center", gap: 10 }}>
+        <div className="token-land" style={{ margin: "0 auto" }}><Sketch id={view.challenge.id} skillId={view.challenge.skillId} size={84} /></div>
         <div className="t-label" style={{ letterSpacing: "0.12em" }}>◦ COLLECTED ◦</div>
         <h1 className="t-display">Into the cabinet it goes.</h1>
-        <p className="t-soft" style={{ margin: "6px auto 4px", maxWidth: "38ch" }}>
-          <b style={{ color: "var(--ink)" }}>{view.challenge.title}</b> — your first {skill?.name.split(" ")[0].toLowerCase()} specimen{skillsTried().size > 1 ? `, and skill #${skillsTried().size} overall` : ""}.
+        <p className="t-soft" style={{ margin: "6px auto 0", maxWidth: "38ch" }}>
+          <b style={{ color: "var(--ink)" }}>{view.challenge.title}</b>{skillsTried().size >= 1 ? ` — skill #${skillsTried().size} in your cabinet` : ""}{nowToday > 1 ? `, #${nowToday} today` : ""}.
         </p>
-        <p className="t-soft" style={{ fontSize: 13 }}>Tomorrow's curio is already picked.</p>
-        <div style={{ padding: "18px 0" }}>
-          <button className="btn-primary" onClick={() => shareCard(view.challenge, view.rating, view.note)}>Share today's curio</button>
-          <button className="btn-ghost" style={{ marginTop: 8 }} onClick={() => setView({ kind: "home" })}>Back to today</button>
+        {view.newUnlocks && view.newUnlocks.length > 0 && (
+          <div style={{ margin: "6px auto", display: "flex", flexDirection: "column", gap: 6 }}>
+            {view.newUnlocks.map((a) => (
+              <div key={a.id} className="card" style={{ padding: "9px 14px", display: "flex", alignItems: "center", gap: 10, borderColor: "var(--plum)" }}>
+                <span style={{ fontSize: 18 }}>🏅</span>
+                <span style={{ textAlign: "left" }}><div style={{ fontWeight: 700, fontSize: 13 }}>Achievement · {a.name}</div><div className="t-soft" style={{ fontSize: 11.5 }}>{a.desc}</div></span>
+              </div>
+            ))}
+          </div>
+        )}
+        <div style={{ padding: "14px 0" }}>
+          <button className="btn-primary" onClick={() => shareCard(view.challenge, view.rating, view.note)}>Share this curio</button>
+          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+            <button className="btn-ghost" style={{ flex: 1 }} onClick={() => setView({ kind: "home" })}>Do another →</button>
+            <button className="btn-ghost" style={{ flex: 1 }} onClick={() => setView({ kind: "home" })}>Done for now</button>
+          </div>
         </div>
       </div>
     );
@@ -153,39 +179,35 @@ function TodayScreen({ view, setView }: { view: View; setView: (v: View) => void
           <div className="t-tag t-soft" style={{ marginTop: 2 }}>{todayStr()}{tried > 0 ? ` · ${tried} skills tried` : ""}</div>
         </div>
       </div>
-      {done ? (
-        <div className="card" style={{ textAlign: "center", padding: 28 }}>
-          <div className="t-label" style={{ marginBottom: 8 }}>◦ TODAY IS DONE ◦</div>
-          <div className="t-title">That's today — nicely done.</div>
-          <p className="t-soft" style={{ marginTop: 8, fontSize: 13.5 }}>Tomorrow's curio is already picked. Come back for it.</p>
+      {todayCount > 0 && (
+        <div className="card" style={{ padding: "11px 15px", marginBottom: 14, display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 18 }}>✓</span>
+          <span style={{ fontSize: 13, flex: 1 }}><b style={{ color: "var(--ink)" }}>{todayCount} done today.</b> No cap here — keep going if you're on a roll.</span>
         </div>
-      ) : (
-        <>
-          <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 12, marginBottom: 2 }}>
-            {MOODS.map((m) => (
-              <button key={m.id} className={`chip${mood === m.id ? " on" : ""}`} onClick={() => { setMood(m.id); setRerolls(0); }}>{m.label}</button>
-            ))}
-          </div>
-          {rightNow && (
-            <button onClick={() => setView({ kind: "detail", challenge: rightNow })} style={{ display: "block", width: "100%", textAlign: "left", marginBottom: 14 }}>
-              <div className="card" style={{ padding: "12px 15px", display: "flex", alignItems: "center", gap: 12 }}>
-                <span className="t-label" style={{ flex: "none" }}>RIGHT NOW · 2 MIN</span>
-                <span style={{ fontSize: 13.5, fontWeight: 600, flex: 1 }}>{rightNow.title}</span>
-                <span className="t-soft">›</span>
-              </div>
-            </button>
-          )}
-          <div className="t-eyebrow" style={{ marginBottom: 8 }}>Today's Curio</div>
-          <ChallengeCard c={curio} hero onOpen={() => setView({ kind: "detail", challenge: curio })} />
-          <div style={{ padding: "12px 0 16px" }}>
-            <button className="btn-primary" onClick={() => setView({ kind: "detail", challenge: curio })}>Start today's curio</button>
-            <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-              {rerolls < 2 && <button className="btn-ghost" style={{ flex: 1 }} onClick={() => setRerolls(rerolls + 1)}>Reroll ({2 - rerolls} left)</button>}
-              <button className="btn-ghost" style={{ flex: 1 }} onClick={() => setView({ kind: "hand" })}>Deal me a hand →</button>
-            </div>
-          </div>
-        </>
       )}
+      <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 12, marginBottom: 2 }}>
+        {MOODS.map((m) => (
+          <button key={m.id} className={`chip${mood === m.id ? " on" : ""}`} onClick={() => { setMood(m.id); setRerolls(0); }}>{m.label}</button>
+        ))}
+      </div>
+      {rightNow && (
+        <button onClick={() => setView({ kind: "detail", challenge: rightNow })} style={{ display: "block", width: "100%", textAlign: "left", marginBottom: 14 }}>
+          <div className="card" style={{ padding: "12px 15px", display: "flex", alignItems: "center", gap: 12 }}>
+            <span className="t-label" style={{ flex: "none" }}>RIGHT NOW · 2 MIN</span>
+            <span style={{ fontSize: 13.5, fontWeight: 600, flex: 1 }}>{rightNow.title}</span>
+            <span className="t-soft">›</span>
+          </div>
+        </button>
+      )}
+      <div className="t-eyebrow" style={{ marginBottom: 8 }}>{todayCount > 0 ? "Another curio" : "Today's Curio"}</div>
+      <ChallengeCard c={curio} hero onOpen={() => setView({ kind: "detail", challenge: curio })} />
+      <div style={{ padding: "12px 0 16px" }}>
+        <button className="btn-primary" onClick={() => setView({ kind: "detail", challenge: curio })}>{todayCount > 0 ? "Start this one" : "Start today's curio"}</button>
+        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+          <button className="btn-ghost" style={{ flex: 1 }} onClick={() => setRerolls(rerolls + 1)}>↻ Not this — reroll</button>
+          <button className="btn-ghost" style={{ flex: 1 }} onClick={() => setView({ kind: "hand" })}>Scroll a hand →</button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -301,9 +323,11 @@ function CabinetScreen() {
                   <div style={{ fontWeight: 700, fontSize: 14 }}>{skill?.name ?? sid}</div>
                   <div className="t-tag t-soft">{count} collected</div>
                 </div>
-                <div style={{ display: "flex", gap: 5, marginTop: 9 }}>
-                  {Array.from({ length: count }).map((_, i) => (
-                    <div key={i} className={i === count - 1 ? "token-land" : undefined} style={{ width: 14, height: 14, borderRadius: 4, background: ["var(--teal)", "var(--ochre)", "var(--stamp)", "var(--plum)", "var(--gold)"][i % 5] }} />
+                <div style={{ display: "flex", gap: 6, marginTop: 9, flexWrap: "wrap" }}>
+                  {log.filter((e) => e.challengeId.split("-")[0] === sid).map((e, i, arr) => (
+                    <div key={i} className={i === arr.length - 1 ? "token-land" : undefined}>
+                      <Sketch id={e.challengeId} skillId={sid} size={38} />
+                    </div>
                   ))}
                 </div>
               </div>
@@ -402,8 +426,24 @@ function YouScreen() {
     };
     inp.click();
   };
+  const unlocked = unlockedIds(log);
   return (
     <div className="screen">
+      <div className="t-eyebrow" style={{ margin: "4px 0 10px" }}>Achievements · {unlocked.size}/{ACHIEVEMENTS.length}</div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 18 }}>
+        {ACHIEVEMENTS.map((a) => {
+          const got = unlocked.has(a.id);
+          return (
+            <div key={a.id} className="card" style={{ padding: "10px 12px", opacity: got ? 1 : 0.5, borderColor: got ? "var(--plum)" : "var(--line-strong)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                <span style={{ fontSize: 15, filter: got ? "none" : "grayscale(1)" }}>{got ? "🏅" : "🔒"}</span>
+                <span style={{ fontWeight: 700, fontSize: 12.5 }}>{a.name}</span>
+              </div>
+              <div className="t-soft" style={{ fontSize: 11, marginTop: 3 }}>{a.desc}</div>
+            </div>
+          );
+        })}
+      </div>
       <div className="t-eyebrow" style={{ margin: "4px 0 12px" }}>Your log</div>
       <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
         <button className="btn-ghost" style={{ flex: 1 }} onClick={doExport}>Export cabinet</button>
