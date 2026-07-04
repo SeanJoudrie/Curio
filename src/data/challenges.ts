@@ -1,4 +1,5 @@
 import type { Skill, Challenge } from "../types";
+import { MORE } from "./moreChallenges";
 
 // Every challenge is a ONE-DAY activity — solo, or great as a date. Budgets run
 // free → cheap → splurge (the "if you've got money" tier: classes, kits, tastings).
@@ -520,5 +521,7 @@ export const CHALLENGES: Challenge[] = [
     resources: { inspiration: "A hand-tied bow tie (crooked and all) beats a clip-on forever.", goDeeper: "Try a French braid or a double-Windsor next." },
     budget: { time: "15m", cost: "free", setting: "home" }, shareTemplate: "Learned to tie a real bow tie 🎀" }),
 ];
+
+CHALLENGES.push(...MORE);
 
 export const skillById = (id: string): Skill | undefined => SKILLS.find((s) => s.id === id);
