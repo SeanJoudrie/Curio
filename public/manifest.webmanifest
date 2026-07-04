@@ -1,0 +1,10 @@
+{
+  "name": "Curio",
+  "short_name": "Curio",
+  "description": "One small real-world skill challenge a day.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#E9E3D0",
+  "theme_color": "#E9E3D0",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}
