@@ -26,6 +26,9 @@ const MOTIF: Record<string, string> = {
   MAG: "M36 60h28l-4-22H40z M32 60h36 M46 38l-4-8 M58 38l6-6 M64 46l8-2", // hat + wand spark
   GRW: "M50 70V44 M50 52c-8 0-14-6-14-14 8 0 14 6 14 14 M50 48c6 0 12-4 12-11-7 0-12 5-12 11 M40 70h20", // sprout
   OUT: "M30 68l20-30 20 30z M50 38v30 M40 68l10-14 10 14 M62 44l6-10 6 24-10-4", // tent + mountain
+  PRF: "M50 30a6 6 0 016 6v12a6 6 0 01-12 0V36a6 6 0 016-6z M38 46a12 12 0 0024 0 M50 58v10 M42 70h16", // microphone
+  WDW: "M34 40l10-6 6 10-10 6z M40 44l-12 20 M64 34l-8 14 8 6 8-14z M60 42l6 10", // hammer + chisel
+  STY: "M42 34a12 12 0 100 24 12 12 0 000-24z M42 58v12 M36 70h12 M60 34v20 M56 34h8l-2 12h-4z", // mirror + comb
 };
 
 export function Sketch({ id, skillId, size = 56 }: { id: string; skillId: string; size?: number }) {

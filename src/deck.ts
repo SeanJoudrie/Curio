@@ -10,19 +10,21 @@ function hash(s: string): number {
 }
 
 // Budget moods (CURIO.md §3) — one tap, not three dials.
-export type Mood = "any" | "cozy" | "quick" | "out";
+export type Mood = "any" | "date" | "cozy" | "quick" | "splurge";
 export const MOODS: { id: Mood; label: string }[] = [
   { id: "any", label: "Anything" },
+  { id: "date", label: "💞 Date night" },
   { id: "cozy", label: "🌙 Cozy in" },
   { id: "quick", label: "⏱ Killing 15 min" },
-  { id: "out", label: "🚶 Out & about" },
+  { id: "splurge", label: "✨ Treat yourselves" },
 ];
 
 function fitsMood(c: Challenge, m: Mood): boolean {
   if (m === "any") return true;
+  if (m === "date") return c.together === true;
   if (m === "cozy") return c.budget.setting === "home" && c.budget.cost !== "splurge";
   if (m === "quick") return c.budget.time === "2m" || c.budget.time === "15m";
-  return c.budget.setting !== "home";
+  return c.budget.cost === "splurge"; // treat yourselves
 }
 
 function pool(mood: Mood): Challenge[] {

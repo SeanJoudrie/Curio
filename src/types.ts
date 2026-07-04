@@ -27,6 +27,7 @@ export interface Challenge {
   encouragement: string;
   resources: { inspiration: string; goDeeper: string };
   budget: { time: TimeBudget; cost: CostBudget; setting: Setting };
+  together?: boolean; // great as a date / two-person activity
   funnyResultsExpected?: boolean;
   shareTemplate: string;
 }

@@ -25,8 +25,8 @@ function Tags({ c }: { c: Challenge }) {
     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
       <span className="tag">{COST_LABEL[c.budget.cost]}</span>
       <span className="tag">{TIME_LABEL[c.budget.time]}</span>
-      <span className="tag">{c.budget.setting.toUpperCase()}</span>
-      {c.funnyResultsExpected && <span className="tag">RESULTS VARY, ON PURPOSE</span>}
+      {c.together && <span className="tag" style={{ color: "var(--plum)", borderColor: "var(--plum)" }}>DATE-FRIENDLY</span>}
+      {c.funnyResultsExpected && <span className="tag">RESULTS VARY</span>}
     </div>
   );
 }
@@ -207,6 +207,11 @@ function TodayScreen({ view, setView }: { view: View; setView: (v: View) => void
           <button className="btn-ghost" style={{ flex: 1 }} onClick={() => setRerolls(rerolls + 1)}>↻ Not this — reroll</button>
           <button className="btn-ghost" style={{ flex: 1 }} onClick={() => setView({ kind: "hand" })}>Scroll a hand →</button>
         </div>
+      </div>
+      <div style={{ flex: 1 }} />
+      <div style={{ textAlign: "center", padding: "16px 0 20px", borderTop: "1px solid var(--line)" }}>
+        <div className="t-tag t-soft" style={{ letterSpacing: "0.06em" }}>ONE SMALL THING A DAY · DO IT SOLO OR TOGETHER</div>
+        <div className="t-soft" style={{ fontSize: 12, marginTop: 4, fontStyle: "italic" }}>Trying is the win. Skill is a side effect.</div>
       </div>
     </div>
   );
