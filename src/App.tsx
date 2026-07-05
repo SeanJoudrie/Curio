@@ -113,6 +113,7 @@ function TodayScreen({ view, setView }: { view: View; setView: (v: View) => void
           {c.accessibleAlternate && <Field k="Another way in" italic>{c.accessibleAlternate}</Field>}
           <Field k="If it flops" italic>{c.encouragement}</Field>
           <Field k="Inspiration">{c.resources.inspiration}</Field>
+          <Field k="Go deeper">{c.resources.goDeeper}</Field>
         </div>
         <div style={{ padding: "12px 0 16px" }}>
           <button className="btn-primary" onClick={() => setView({ kind: "stamp", challenge: c })}>I did it — stamp it</button>
@@ -607,7 +608,7 @@ export default function App() {
       {!(tab === "today" && focused) && (
         <nav className="tabbar">
           {(["today", "cabinet", "catalog", "you"] as Tab[]).map((t) => (
-            <button key={t} className={tab === t ? "on" : ""} onClick={() => { setTab(t); if (t === "today") setView({ kind: "home" }); }}>
+            <button key={t} className={tab === t ? "on" : ""} onClick={() => { navigator.vibrate?.(8); setTab(t); if (t === "today") setView({ kind: "home" }); }}>
               {ICONS[t]}
               <span>{t === "today" ? "Today" : t === "cabinet" ? "Cabinet" : t === "catalog" ? "Catalog" : "You"}</span>
             </button>
