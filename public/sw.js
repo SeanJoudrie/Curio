@@ -1,7 +1,7 @@
 // Curio service worker — offline app shell + runtime caching.
 // Hashed assets are immutable (cache-first); navigations are network-first so
 // new deploys are picked up, falling back to the cached shell when offline.
-const CACHE = "curio-v1";
+const CACHE = "curio-v2";
 
 self.addEventListener("install", (e) => {
   self.skipWaiting();
