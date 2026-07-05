@@ -14,10 +14,34 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500..700;1,9..144,500..600&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
-    <style>body{background:#E9E3D0}@media(prefers-color-scheme:dark){body{background:#161F1B}}</style>
+    <style>
+      body{background:#E9E3D0}
+      @media(prefers-color-scheme:dark){body{background:#161F1B}}
+      #splash{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#E9E3D0;z-index:50;transition:opacity .4s ease}
+      #splash .logo{width:64px;height:64px;animation:sp-pulse 1.6s ease-in-out infinite}
+      #splash .wm{font-family:ui-serif,Georgia,serif;font-size:26px;font-weight:600;color:#1C2521;letter-spacing:-.01em}
+      #splash .tag{font-family:ui-monospace,monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#4B564E}
+      @keyframes sp-pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.06);opacity:.8}}
+      @media(prefers-color-scheme:dark){#splash{background:#161F1B}#splash .wm{color:#E9E4D2}#splash .tag{color:#A9B3A6}}
+      @media(prefers-reduced-motion:reduce){#splash .logo{animation:none}}
+    </style>
   </head>
   <body>
     <div id="root"></div>
+    <div id="splash">
+      <img class="logo" src="./favicon.svg" alt="" />
+      <div class="wm">Curio</div>
+      <div class="tag">one small thing a day</div>
+    </div>
+    <script>
+      // fade the splash once the app has painted
+      window.addEventListener("DOMContentLoaded", () => {
+        const s = document.getElementById("splash");
+        const hide = () => { if (s) { s.style.opacity = "0"; setTimeout(() => s.remove(), 400); } };
+        // hide shortly after mount; the app also clears it via #root children
+        setTimeout(hide, 650);
+      });
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

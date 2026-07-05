@@ -13,7 +13,7 @@ type View =
   | { kind: "hand" }
   | { kind: "detail"; challenge: Challenge }
   | { kind: "stamp"; challenge: Challenge }
-  | { kind: "done"; challenge: Challenge; rating: number; note?: string; newUnlocks?: Achievement[] };
+  | { kind: "done"; challenge: Challenge; rating: number; note?: string; photo?: string; newUnlocks?: Achievement[] };
 
 const TIME_LABEL: Record<string, string> = { "2m": "2 MIN", "15m": "15 MIN", "1h": "1 HR", "half-day": "HALF-DAY", "multi-day": "MULTI-DAY" };
 const COST_LABEL: Record<string, string> = { free: "FREE", cheap: "CHEAP", splurge: "SPLURGE" };
@@ -123,7 +123,7 @@ function TodayScreen({ view, setView }: { view: View; setView: (v: View) => void
   }
 
   if (view.kind === "stamp") {
-    return <StampScreen challenge={view.challenge} onDone={(rating, note) => setView({ kind: "done", challenge: view.challenge, rating, note, newUnlocks: popNewUnlocks() })} />;
+    return <StampScreen challenge={view.challenge} onDone={(rating, note, photo) => setView({ kind: "done", challenge: view.challenge, rating, note, photo, newUnlocks: popNewUnlocks() })} />;
   }
 
   if (view.kind === "done") {
@@ -147,7 +147,7 @@ function TodayScreen({ view, setView }: { view: View; setView: (v: View) => void
           </div>
         )}
         <div style={{ padding: "14px 0" }}>
-          <button className="btn-primary" onClick={() => shareCard(view.challenge, view.rating, view.note)}>Share this curio</button>
+          <button className="btn-primary" onClick={() => shareCard(view.challenge, view.rating, view.note, view.photo)}>Share this curio</button>
           <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
             <button className="btn-ghost" style={{ flex: 1 }} onClick={() => setView({ kind: "home" })}>Do another →</button>
             <button className="btn-ghost" style={{ flex: 1 }} onClick={() => setView({ kind: "home" })}>Done for now</button>
@@ -236,7 +236,7 @@ function compressPhoto(file: File): Promise<string> {
 
 const buzz = (ms: number) => navigator.vibrate?.(ms);
 
-function StampScreen({ challenge, onDone }: { challenge: Challenge; onDone: (r: number, note?: string) => void }) {
+function StampScreen({ challenge, onDone }: { challenge: Challenge; onDone: (r: number, note?: string, photo?: string) => void }) {
   const [rating, setRating] = useState<number>(0);
   const [note, setNote] = useState("");
   const [tag, setTag] = useState<LogEntry["tag"]>(undefined);
@@ -289,7 +289,7 @@ function StampScreen({ challenge, onDone }: { challenge: Challenge; onDone: (r: 
             // "too hard" means offer easier, not mute the whole drawer.
             if (rating >= 4) nudgeBoost(challenge.skillId, 1);
             else if (rating <= 2 && tag !== "too-hard") nudgeBoost(challenge.skillId, -1);
-            onDone(rating, entry.note);
+            onDone(rating, entry.note, entry.photoRef);
           }}
         >
           Stamp &amp; log it
@@ -413,6 +413,7 @@ function require_challenges() {
 }
 
 function Onboarding({ onDone }: { onDone: (firstWin?: Challenge) => void }) {
+  const [step, setStep] = useState<"welcome" | "taste">("welcome");
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const toggle = (id: string) => {
     const s = new Set(picked);
@@ -426,10 +427,33 @@ function Onboarding({ onDone }: { onDone: (firstWin?: Challenge) => void }) {
     setOnboarded();
     onDone(rightNowCurio()); // guaranteed first win: a 60-sec curio, right now (CURIO.md §14)
   };
+
+  if (step === "welcome") {
+    return (
+      <div className="app">
+        <div className="screen" style={{ justifyContent: "center", textAlign: "center", gap: 6 }}>
+          <div style={{ margin: "0 auto 6px" }}><Sketch id="welcome-CUL" skillId="CUL" size={76} /></div>
+          <div className="t-label" style={{ letterSpacing: "0.14em" }}>◦ WELCOME ◦</div>
+          <h1 className="t-display" style={{ fontSize: 34, margin: "4px 12px" }}>One small thing a day.</h1>
+          <p className="t-soft" style={{ fontSize: 15, margin: "6px auto 2px", maxWidth: "34ch", lineHeight: 1.5 }}>
+            Curio hands you one real-world thing to actually go <i>do</i> — solo or together. Bake a cake, learn a card trick, watch a bird, whatever.
+          </p>
+          <p className="t-soft" style={{ fontSize: 15, margin: "0 auto", maxWidth: "34ch", lineHeight: 1.5 }}>
+            You rate how it <i>felt</i>, not how it went. <b style={{ color: "var(--ink)" }}>Trying is the win.</b>
+          </p>
+          <div style={{ padding: "22px 0 10px", width: "100%" }}>
+            <button className="btn-primary" onClick={() => setStep("taste")}>Let's go →</button>
+            <p className="t-soft" style={{ fontSize: 12, textAlign: "center", marginTop: 10 }}>30 seconds to set up. Everything stays on your phone.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="app">
       <div className="screen">
-        <div className="t-label" style={{ margin: "18px 0 6px" }}>1 OF 2 · TUNE YOUR DECK</div>
+        <div className="t-label" style={{ margin: "18px 0 6px" }}>STEP 1 OF 2 · TUNE YOUR DECK</div>
         <h1 className="t-display">Which of these pull at you?</h1>
         <p className="t-soft" style={{ fontSize: 13.5, margin: "8px 0 16px" }}>Tap a few — or none. "Surprise me" is a completely valid answer. You can change all of this later.</p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignContent: "flex-start", flex: 1 }}>
