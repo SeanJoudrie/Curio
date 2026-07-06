@@ -3,6 +3,7 @@ import { MORE } from "./moreChallenges";
 import { MORE2 } from "./moreChallenges2";
 import { MORE3 } from "./moreChallenges3";
 import { MORE4 } from "./moreChallenges4";
+import { ARCHIVED } from "./archived";
 
 // Every challenge is a ONE-DAY activity — solo, or great as a date. Budgets run
 // free → cheap → splurge (the "if you've got money" tier: classes, kits, tastings).
@@ -529,5 +530,11 @@ CHALLENGES.push(...MORE);
 CHALLENGES.push(...MORE2);
 CHALLENGES.push(...MORE3);
 CHALLENGES.push(...MORE4);
+
+// Archive: drop retired / duplicate / mild-risk challenges from the live pool.
+// They stay defined in source (see archived.ts) but never reach deck or Catalog.
+for (let i = CHALLENGES.length - 1; i >= 0; i--) {
+  if (ARCHIVED.has(CHALLENGES[i].id)) CHALLENGES.splice(i, 1);
+}
 
 export const skillById = (id: string): Skill | undefined => SKILLS.find((s) => s.id === id);
