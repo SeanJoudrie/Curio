@@ -31,11 +31,6 @@ export function skillsTried(): Set<string> {
   return new Set(getLog().map((e) => e.challengeId.split("-")[0]));
 }
 
-export function completedToday(): LogEntry | undefined {
-  const t = todayStr();
-  return getLog().find((e) => e.date === t);
-}
-
 // Skips deprioritize, never delete (CURIO.md §3).
 export function getSkips(): string[] {
   try {

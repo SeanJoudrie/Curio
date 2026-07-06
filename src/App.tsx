@@ -39,7 +39,7 @@ function Field({ k, children, italic }: { k: string; children: React.ReactNode; 
   );
 }
 
-const buzzq = (ms: number) => navigator.vibrate?.(ms);
+const buzz = (ms: number) => navigator.vibrate?.(ms);
 
 // Line icons (consistent stroke, replacing emoji in chrome — CURIO.md §18)
 function Icon({ name, size = 18 }: { name: string; size?: number }) {
@@ -61,6 +61,9 @@ function Icon({ name, size = 18 }: { name: string; size?: number }) {
     pencil: <path d="M4 20l1-4L16.5 4.5a2.1 2.1 0 013 3L8 19l-4 1z" />,
     chevron: <path d="M8 10l4 4 4-4" />,
     share: <><path d="M12 15V4m0 0l-3.5 3.5M12 4l3.5 3.5" /><path d="M5.5 12.5V19h13v-6.5" /></>,
+    starFill: <path fill="currentColor" stroke="none" d="M12 3.6l2.5 5.2 5.7.8-4.2 4 1 5.7-5-2.7-5 2.7 1-5.7-4.2-4 5.7-.8z" />,
+    alert: <><path d="M12 4L2.8 19.5h18.4z" /><path d="M12 10v4.5" /><path d="M12 17.2v.2" /></>,
+    box: <rect x="5.5" y="5.5" width="13" height="13" rx="2.5" />,
   };
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor"
@@ -88,11 +91,11 @@ function SwipeDeck({ list, onExpand, onEmpty }: { list: Challenge[]; onExpand: (
     if (!c) return;
     if (dir === -1) addSkip(c.id);
     else if (!isSaved(c.id)) toggleSaved(c.id);
-    buzzq(15);
+    buzz(15);
     setExiting(dir);
     setTimeout(advance, 220);
   };
-  const star = () => { if (c) { toggleSaved(c.id); buzzq(15); setSavedTick((t) => t + 1); } };
+  const star = () => { if (c) { toggleSaved(c.id); buzz(15); setSavedTick((t) => t + 1); } };
 
   const onDown = (e: React.PointerEvent) => { if (exiting) return; drag.current = true; moved.current = false; startX.current = e.clientX; (e.target as HTMLElement).setPointerCapture?.(e.pointerId); };
   const onMove = (e: React.PointerEvent) => { if (!drag.current) return; const nx = e.clientX - startX.current; if (Math.abs(nx) > 5) moved.current = true; setDx(nx); };
@@ -109,7 +112,8 @@ function SwipeDeck({ list, onExpand, onEmpty }: { list: Challenge[]; onExpand: (
 
   const tx = exiting ? exiting * 620 : dx;
   const rot = tx / 22;
-  const saved = isSaved(c.id) || savedTick < 0; // savedTick only forces re-render
+  void savedTick; // state exists only to force a re-render on star toggle
+  const saved = isSaved(c.id);
   const skill = skillById(c.skillId);
 
   return (
@@ -127,14 +131,23 @@ function SwipeDeck({ list, onExpand, onEmpty }: { list: Challenge[]; onExpand: (
           onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
         >
           <div className="swipe-badge nope" style={{ opacity: Math.max(0, Math.min(1, -dx / 70)) }}>skip</div>
-          <div className="swipe-badge save" style={{ opacity: Math.max(0, Math.min(1, dx / 70)) }}>save ★</div>
+          <div className="swipe-badge save" style={{ opacity: Math.max(0, Math.min(1, dx / 70)) }}>save</div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
             <div className="t-eyebrow">{skill?.name} · {LEVEL_LABEL[c.level]}</div>
-            <button onClick={(e) => { e.stopPropagation(); star(); }} style={{ fontSize: 22, lineHeight: 1, color: saved ? "var(--star)" : "var(--ink-soft)", flex: "none" }} aria-label="Save">{saved ? "★" : "☆"}</button>
+            <button onClick={(e) => { e.stopPropagation(); star(); }} style={{ lineHeight: 1, color: saved ? "var(--star)" : "var(--ink-soft)", flex: "none", padding: 2 }} aria-label={saved ? "Unsave" : "Save"}>
+              <Icon name={saved ? "starFill" : "star"} size={22} />
+            </button>
           </div>
-          <h2 className="t-display" style={{ fontSize: 30, margin: "10px 0 4px" }}>{c.title}</h2>
-          <div style={{ margin: "6px auto 10px" }}><Sketch id={c.id} skillId={c.skillId} title={c.title} size={72} /></div>
-          <p className="t-soft" style={{ fontSize: 14, lineHeight: 1.5, flex: 1 }}>{c.microLesson.split(". ")[0]}.</p>
+          {/* the card's face: photo when the challenge has one, its line-motif symbol otherwise */}
+          <div style={{ margin: "auto 0", display: "flex", flexDirection: "column" }}>
+            {c.image ? (
+              <img src={c.image} alt="" draggable={false} style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", borderRadius: 14, border: "1px solid var(--line)", marginBottom: 14 }} />
+            ) : (
+              <div style={{ margin: "0 auto 14px" }}><Sketch id={c.id} skillId={c.skillId} title={c.title} size={116} /></div>
+            )}
+            <h2 className="t-display" style={{ fontSize: 30, margin: "0 0 8px" }}>{c.title}</h2>
+            <p className="t-soft" style={{ fontSize: 14, lineHeight: 1.5 }}>{c.microLesson.split(". ")[0]}.</p>
+          </div>
           <Tags c={c} />
           <div className="t-tag t-soft" style={{ textAlign: "center", marginTop: 12, opacity: 0.7 }}>← skip · tap to open · save →</div>
         </div>
@@ -142,7 +155,7 @@ function SwipeDeck({ list, onExpand, onEmpty }: { list: Challenge[]; onExpand: (
       <div className="deck-actions">
         <button className="skip" onClick={() => fling(-1)} aria-label="Skip"><Icon name="x" size={24} /></button>
         <button className="go big" onClick={() => onExpand(c)} aria-label="Open"><Icon name="expand" size={26} /></button>
-        <button className="save" onClick={star} aria-label="Save" style={{ fontSize: 24 }}>{isSaved(c.id) ? "★" : "☆"}</button>
+        <button className="save" onClick={star} aria-label={isSaved(c.id) ? "Unsave" : "Save"}><Icon name={isSaved(c.id) ? "starFill" : "star"} size={24} /></button>
       </div>
     </>
   );
@@ -161,12 +174,15 @@ function TodayScreen({ view, setView }: { view: View; setView: (v: View) => void
     return (
       <div className="screen">
         <button className="btn-link" style={{ alignSelf: "flex-start", paddingLeft: 0 }} onClick={() => setView({ kind: "home" })}>‹ Today</button>
+        {c.image && (
+          <img src={c.image} alt="" style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", borderRadius: 14, border: "1px solid var(--line)", marginBottom: 14 }} />
+        )}
         <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
           <div style={{ flex: 1 }}>
             <div className="t-eyebrow">{skill?.name} · {LEVEL_LABEL[c.level]}</div>
             <h1 className="t-title" style={{ fontSize: 24, margin: "6px 0 16px" }}>{c.title}</h1>
           </div>
-          <div style={{ flex: "none" }}><Sketch id={c.id} skillId={c.skillId} title={c.title} size={64} /></div>
+          {!c.image && <div style={{ flex: "none" }}><Sketch id={c.id} skillId={c.skillId} title={c.title} size={64} /></div>}
         </div>
         <div style={{ flex: 1 }}>
           <Field k="Micro-lesson">{c.microLesson}</Field>
@@ -184,13 +200,13 @@ function TodayScreen({ view, setView }: { view: View; setView: (v: View) => void
           )}
           {c.needs && (
             <Field k="What you'll need">
-              {c.needs.map((n) => <div key={n} style={{ padding: "2px 0" }}>◻ {n}</div>)}
+              {c.needs.map((n) => <div key={n} style={{ display: "flex", alignItems: "center", gap: 8, padding: "2px 0" }}><span style={{ color: "var(--ink-soft)", display: "flex" }}><Icon name="box" size={14} /></span>{n}</div>)}
               <div className="t-soft" style={{ fontSize: 12.5, marginTop: 4 }}>Use what you have first.</div>
             </Field>
           )}
           {c.safetyNote && (
-            <div style={{ fontSize: 12.5, color: "var(--stamp)", background: "color-mix(in srgb, var(--stamp) 9%, transparent)", borderRadius: 8, padding: "9px 12px", marginBottom: 14 }}>
-              ⚠ {c.safetyNote}
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12.5, color: "var(--stamp)", background: "color-mix(in srgb, var(--stamp) 9%, transparent)", borderRadius: 8, padding: "9px 12px", marginBottom: 14 }}>
+              <span style={{ display: "flex", flex: "none", marginTop: 1 }}><Icon name="alert" size={14} /></span>{c.safetyNote}
             </div>
           )}
           {c.accessibleAlternate && <Field k="Another way in" italic>{c.accessibleAlternate}</Field>}
@@ -290,8 +306,6 @@ function compressPhoto(file: File): Promise<string> {
     img.src = URL.createObjectURL(file);
   });
 }
-
-const buzz = (ms: number) => navigator.vibrate?.(ms);
 
 function StampScreen({ challenge, onDone }: { challenge: Challenge; onDone: (r: number, note?: string, photo?: string) => void }) {
   const [rating, setRating] = useState<number>(0);
@@ -439,7 +453,7 @@ function CabinetScreen() {
 type CatFilter = "all" | "saved" | "date" | "free" | "splurge" | "quick" | "todo";
 const CAT_FILTERS: { id: CatFilter; label: string }[] = [
   { id: "all", label: "All" },
-  { id: "saved", label: "★ Saved" },
+  { id: "saved", label: "Saved" },
   { id: "todo", label: "Not done" },
   { id: "date", label: "Date" },
   { id: "quick", label: "Quick" },
@@ -458,11 +472,11 @@ function CatRow({ c, done, openDetail, showDrawer }: { c: Challenge; done: boole
         background: "var(--paper-card)", border: "1px solid var(--line)", borderLeft: `4px solid ${drawerHue(c.skillId)}`, borderRadius: 10 }}>
       <div style={{ flex: 1, minWidth: 0, paddingLeft: 12 }}>
         <div style={{ fontSize: 14, fontWeight: 600, color: done ? "var(--ink-soft)" : "var(--ink)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-          {done && <span style={{ color: "var(--teal)" }}>✓ </span>}{c.title}
+          {done && <span style={{ color: "var(--teal)", display: "inline-flex", verticalAlign: "-2px", marginRight: 4 }}><Icon name="check" size={13} /></span>}{c.title}
         </div>
         <div style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 1, textTransform: "capitalize" }}>{META(c, showDrawer)}</div>
       </div>
-      {isSaved(c.id) && <span style={{ color: "var(--star)", fontSize: 16, flex: "none", paddingRight: 12 }}>★</span>}
+      {isSaved(c.id) && <span style={{ color: "var(--star)", display: "flex", flex: "none", paddingRight: 12 }}><Icon name="starFill" size={15} /></span>}
     </button>
   );
 }
@@ -539,7 +553,7 @@ function CatalogScreen({ openDetail }: { openDetail: (c: Challenge) => void }) {
               {results.map((c) => <CatRow key={c.id} c={c} done={done.has(c.id)} openDetail={openDetail} showDrawer={!drawer} />)}
               {results.length === 0 && (
                 <p className="t-soft" style={{ fontSize: 13.5, textAlign: "center", padding: 24 }}>
-                  {filter === "saved" ? "No saved cards yet — swipe right (or tap ☆) on the deck to save one here." : "Nothing matches that — try clearing a filter."}
+                  {filter === "saved" ? "No saved cards yet — swipe right (or tap the star) on the deck to save one here." : "Nothing matches that — try clearing a filter."}
                 </p>
               )}
             </div>

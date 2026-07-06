@@ -15,6 +15,7 @@ export interface Challenge {
   id: string; // e.g. "PHO-014"
   skillId: string;
   title: string;
+  image?: string; // optional card photo URL — when present it replaces the line-motif symbol on the deck card & detail; the symbol is the permanent fallback
   level: Level;
   ladderStep?: number; // rung within a skill's ladder
   microLesson: string;
