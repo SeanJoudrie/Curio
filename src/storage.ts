@@ -46,6 +46,9 @@ export function addSkip(id: string): void {
     localStorage.setItem(SKIP_KEY, JSON.stringify(s));
   }
 }
+export function removeSkip(id: string): void {
+  localStorage.setItem(SKIP_KEY, JSON.stringify(getSkips().filter((x) => x !== id)));
+}
 
 // ---- Preferences: boost/mute per drawer (CURIO.md §4) ----
 const PREF_KEY = "curio.prefs.v1";

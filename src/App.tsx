@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Challenge, LogEntry } from "./types";
 import { skillById, SKILLS, CHALLENGES } from "./data/challenges";
 import { rightNowCurio, swipeDeck, MOODS, type Mood } from "./deck";
-import { addLogEntry, addSkip, getLog, skillsTried, todayStr, nudgeBoost, isOnboarded, setOnboarded, setBoosts, getBoosts, exportData, importData, currentStreak, toggleSaved, isSaved } from "./storage";
+import { addLogEntry, addSkip, removeSkip, getLog, skillsTried, todayStr, nudgeBoost, isOnboarded, setOnboarded, setBoosts, getBoosts, exportData, importData, currentStreak, toggleSaved, isSaved } from "./storage";
 import { shareCard } from "./share";
 import { Sketch, drawerHue, drawerPhoto } from "./Sketch";
 import { ACHIEVEMENTS, unlockedIds, popNewUnlocks, type Achievement } from "./achievements";
@@ -84,6 +84,7 @@ function Icon({ name, size = 18 }: { name: string; size?: number }) {
     starFill: <path fill="currentColor" stroke="none" d="M12 3.6l2.5 5.2 5.7.8-4.2 4 1 5.7-5-2.7-5 2.7 1-5.7-4.2-4 5.7-.8z" />,
     alert: <><path d="M12 4L2.8 19.5h18.4z" /><path d="M12 10v4.5" /><path d="M12 17.2v.2" /></>,
     box: <rect x="5.5" y="5.5" width="13" height="13" rx="2.5" />,
+    undo: <><path d="M4 10h10a5.5 5.5 0 010 11h-5" /><path d="M4 10l4.5-4.5M4 10l4.5 4.5" /></>,
   };
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor"
@@ -124,7 +125,9 @@ function SwipeDeck({ list, onExpand, onEmpty }: { list: Challenge[]; onExpand: (
   const [dx, setDx] = useState(0);
   const [exiting, setExiting] = useState<0 | 1 | -1>(0);
   const [savedTick, setSavedTick] = useState(0);
-  const startX = useRef(0);
+  const [undoInfo, setUndoInfo] = useState<{ dir: 1 | -1; id: string; wasSaved: boolean } | null>(null);
+  const start = useRef({ x: 0, y: 0 });
+  const axis = useRef<"" | "h" | "v">(""); // decided on first significant move — lets vertical gestures scroll
   const moved = useRef(false);
   const drag = useRef(false);
 
@@ -135,23 +138,57 @@ function SwipeDeck({ list, onExpand, onEmpty }: { list: Challenge[]; onExpand: (
   const advance = () => { setExiting(0); setDx(0); setI((v) => v + 1); };
   const fling = (dir: 1 | -1) => {
     if (!c) return;
+    const wasSaved = isSaved(c.id);
     if (dir === -1) addSkip(c.id);
-    else if (!isSaved(c.id)) toggleSaved(c.id);
+    else if (!wasSaved) toggleSaved(c.id);
+    setUndoInfo({ dir, id: c.id, wasSaved });
     buzz(15);
     setExiting(dir);
     setTimeout(advance, 220);
   };
+  const undo = () => {
+    if (!undoInfo) return;
+    if (undoInfo.dir === -1) removeSkip(undoInfo.id);
+    else if (!undoInfo.wasSaved && isSaved(undoInfo.id)) toggleSaved(undoInfo.id);
+    setUndoInfo(null);
+    setExiting(0); setDx(0);
+    setI((v) => Math.max(0, v - 1));
+    buzz(10);
+  };
   const star = () => { if (c) { toggleSaved(c.id); buzz(15); setSavedTick((t) => t + 1); } };
 
-  const onDown = (e: React.PointerEvent) => { if (exiting) return; drag.current = true; moved.current = false; startX.current = e.clientX; (e.target as HTMLElement).setPointerCapture?.(e.pointerId); };
-  const onMove = (e: React.PointerEvent) => { if (!drag.current) return; const nx = e.clientX - startX.current; if (Math.abs(nx) > 5) moved.current = true; setDx(nx); };
-  const onUp = () => {
+  const onDown = (e: React.PointerEvent) => {
+    if (exiting || (e.target as HTMLElement).closest("button")) return; // don't hijack the star tap
+    drag.current = true; moved.current = false; axis.current = "";
+    start.current = { x: e.clientX, y: e.clientY };
+  };
+  const onMove = (e: React.PointerEvent) => {
     if (!drag.current) return;
+    const nx = e.clientX - start.current.x;
+    const ny = e.clientY - start.current.y;
+    if (axis.current === "") {
+      if (Math.abs(nx) < 8 && Math.abs(ny) < 8) return; // not enough to decide
+      axis.current = Math.abs(nx) > Math.abs(ny) ? "h" : "v";
+      if (axis.current === "h") (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+      else { drag.current = false; return; } // vertical intent → release to native scroll
+    }
+    if (axis.current !== "h") return;
+    moved.current = true;
+    setDx(nx);
+  };
+  const onUp = () => {
+    const wasDrag = drag.current;
     drag.current = false;
-    if (!moved.current) { if (c) onExpand(c); setDx(0); return; }
-    if (dx < -THRESH) fling(-1);
-    else if (dx > THRESH) fling(1);
-    else setDx(0);
+    const a = axis.current;
+    axis.current = "";
+    if (a === "h") {
+      if (dx < -THRESH) fling(-1);
+      else if (dx > THRESH) fling(1);
+      else setDx(0);
+      return;
+    }
+    if (wasDrag && !moved.current && c) onExpand(c); // clean tap → open
+    setDx(0);
   };
 
   if (!c) return <div className="card" style={{ textAlign: "center", padding: 30, marginTop: 8 }}>{onEmpty}</div>;
@@ -181,6 +218,13 @@ function SwipeDeck({ list, onExpand, onEmpty }: { list: Challenge[]; onExpand: (
         <button className="skip" onClick={() => fling(-1)} aria-label="Skip"><Icon name="x" size={24} /></button>
         <button className="go big" onClick={() => onExpand(c)} aria-label="Open"><Icon name="expand" size={26} /></button>
         <button className="save" onClick={star} aria-label={isSaved(c.id) ? "Unsave" : "Save"}><Icon name={isSaved(c.id) ? "starFill" : "star"} size={24} /></button>
+      </div>
+      <div style={{ height: 26, textAlign: "center" }}>
+        {undoInfo && (
+          <button className="btn-link" onClick={undo} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 10px", minHeight: 0, fontSize: 13 }}>
+            <Icon name="undo" size={14} /> Undo {undoInfo.dir === -1 ? "skip" : "save"}
+          </button>
+        )}
       </div>
     </>
   );
