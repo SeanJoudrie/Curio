@@ -6,6 +6,7 @@ import { addLogEntry, addSkip, removeSkip, getLog, skillsTried, todayStr, nudgeB
 import { shareCard } from "./share";
 import { Sketch, drawerHue, drawerPhoto, themePhoto } from "./Sketch";
 import { ACHIEVEMENTS, unlockedIds, popNewUnlocks, type Achievement } from "./achievements";
+import { firstSentence } from "./text";
 
 type Tab = "today" | "cabinet" | "catalog" | "you";
 type View =
@@ -22,12 +23,6 @@ const RATING_LABEL = ["", "Not for me", "Meh", "Alright", "Enjoyed it", "Loved i
 // Card-face labels — sentence case, no boxes (the deck card wants air, not chrome).
 const COST_CARD: Record<string, string> = { free: "Free", cheap: "Under $20", splurge: "Splurge" };
 const TIME_CARD: Record<string, string> = { "2m": "2 min", "15m": "15 min", "1h": "1 hr", "half-day": "Half-day", "multi-day": "Multi-day" };
-
-// First sentence of the micro-lesson, guarding decimals ("0.18 s") and mid-word dots.
-function firstSentence(s: string): string {
-  const m = s.match(/[.!?](?=\s+["'(]?[A-Z])/);
-  return (m && m.index !== undefined ? s.slice(0, m.index + 1) : s).trim();
-}
 
 function CardMeta({ c }: { c: Challenge }) {
   const parts = [COST_CARD[c.budget.cost], TIME_CARD[c.budget.time], c.together ? "Date" : null, c.funnyResultsExpected ? "Results vary" : null].filter(Boolean) as string[];
@@ -124,7 +119,7 @@ function SwipeDeck({ list, onExpand, onEmpty }: { list: Challenge[]; onExpand: (
   const [i, setI] = useState(0);
   const [dx, setDx] = useState(0);
   const [exiting, setExiting] = useState<0 | 1 | -1>(0);
-  const [savedTick, setSavedTick] = useState(0);
+  const [, setSavedTick] = useState(0); // bump to force a re-render on star toggle
   const [undoInfo, setUndoInfo] = useState<{ dir: 1 | -1; id: string; wasSaved: boolean } | null>(null);
   const start = useRef({ x: 0, y: 0 });
   const axis = useRef<"" | "h" | "v">(""); // decided on first significant move — lets vertical gestures scroll
@@ -195,7 +190,6 @@ function SwipeDeck({ list, onExpand, onEmpty }: { list: Challenge[]; onExpand: (
 
   const tx = exiting ? exiting * 620 : dx;
   const rot = tx / 22;
-  void savedTick; // state exists only to force a re-render on star toggle
   const saved = isSaved(c.id);
 
   return (
@@ -633,16 +627,13 @@ function CatalogScreen({ openDetail }: { openDetail: (c: Challenge) => void }) {
 
 // avoids circular import gymnastics in one file
 import { CHALLENGES as _CHALLENGES } from "./data/challenges";
-function require_challenges() {
-  return { SKILLS, CHALLENGES: _CHALLENGES };
-}
 
 function Onboarding({ onDone }: { onDone: (firstWin?: Challenge) => void }) {
   const [step, setStep] = useState<"welcome" | "taste">("welcome");
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const toggle = (id: string) => {
     const s = new Set(picked);
-    s.has(id) ? s.delete(id) : s.add(id);
+    if (s.has(id)) s.delete(id); else s.add(id);
     setPicked(s);
   };
   const finish = () => {
