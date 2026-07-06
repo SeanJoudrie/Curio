@@ -42,6 +42,14 @@ export function drawerHue(skillId: string): string {
   return HUE[skillId] ?? "#EF5F3C";
 }
 
+// A curated hero photo per drawer (public/img/drawers/<CODE>.jpg, Unsplash
+// license). Used as the card face until a challenge gets its own `image`.
+// Falls back to the line motif if the file is missing / offline pre-cache.
+const HAS_PHOTO = new Set(["CUL", "PHO", "MUS", "PRF", "MOV", "LAN", "CRA", "WDW", "WRI", "GAM", "MAG", "NAT", "GRW", "OUT", "MND", "SOC", "STY"]);
+export function drawerPhoto(skillId: string): string | undefined {
+  return HAS_PHOTO.has(skillId) ? `${import.meta.env.BASE_URL}img/drawers/${skillId}.jpg` : undefined;
+}
+
 // Per-challenge line motifs — more specific than the drawer default. viewBox 0 0 100 100.
 const THEME: Record<string, string> = {
   cake: "M28 72h44 M31 72V52h38v20 M31 60h38 M31 52c0-6 8-9 19-9s19 3 19 9 M50 43v-8 M46 35h8",

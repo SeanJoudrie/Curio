@@ -4,7 +4,7 @@ import { skillById, SKILLS, CHALLENGES } from "./data/challenges";
 import { rightNowCurio, swipeDeck, MOODS, type Mood } from "./deck";
 import { addLogEntry, addSkip, getLog, skillsTried, todayStr, nudgeBoost, isOnboarded, setOnboarded, setBoosts, getBoosts, exportData, importData, currentStreak, toggleSaved, isSaved } from "./storage";
 import { shareCard } from "./share";
-import { Sketch, drawerHue } from "./Sketch";
+import { Sketch, drawerHue, drawerPhoto } from "./Sketch";
 import { ACHIEVEMENTS, unlockedIds, popNewUnlocks, type Achievement } from "./achievements";
 
 type Tab = "today" | "cabinet" | "catalog" | "you";
@@ -38,11 +38,13 @@ function CardMeta({ c }: { c: Challenge }) {
   );
 }
 
-// The card's face: a real photo when the challenge has one, its line-motif symbol otherwise.
+// The card's face: the challenge's own photo, else its drawer's hero photo,
+// else the line-motif symbol (robust to a failed/offline image load).
 function CardImage({ c, size }: { c: Challenge; size: number }) {
   const [err, setErr] = useState(false);
-  if (c.image && !err) {
-    return <img src={c.image} alt="" draggable={false} onError={() => setErr(true)}
+  const src = c.image ?? drawerPhoto(c.skillId);
+  if (src && !err) {
+    return <img src={src} alt="" draggable={false} onError={() => setErr(true)}
       style={{ width: "100%", aspectRatio: "16 / 9", objectFit: "cover", borderRadius: 14, border: "1px solid var(--line)", marginBottom: 14 }} />;
   }
   return <div style={{ margin: "0 auto 14px" }}><Sketch id={c.id} skillId={c.skillId} title={c.title} size={size} /></div>;
@@ -197,16 +199,9 @@ function TodayScreen({ view, setView }: { view: View; setView: (v: View) => void
     return (
       <div className="screen">
         <button className="btn-link" style={{ alignSelf: "flex-start", paddingLeft: 0 }} onClick={() => setView({ kind: "home" })}>‹ Today</button>
-        {c.image && (
-          <img src={c.image} alt="" style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", borderRadius: 14, border: "1px solid var(--line)", marginBottom: 14 }} />
-        )}
-        <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-          <div style={{ flex: 1 }}>
-            <div className="t-eyebrow">{skill?.name} · {LEVEL_LABEL[c.level]}</div>
-            <h1 className="t-title" style={{ fontSize: 24, margin: "6px 0 16px" }}>{c.title}</h1>
-          </div>
-          {!c.image && <div style={{ flex: "none" }}><Sketch id={c.id} skillId={c.skillId} title={c.title} size={64} /></div>}
-        </div>
+        <CardImage c={c} size={72} />
+        <div className="t-eyebrow">{skill?.name} · {LEVEL_LABEL[c.level]}</div>
+        <h1 className="t-title" style={{ fontSize: 24, margin: "6px 0 16px" }}>{c.title}</h1>
         <div style={{ flex: 1 }}>
           <Field k="Micro-lesson">{c.microLesson}</Field>
           {c.stages ? (
