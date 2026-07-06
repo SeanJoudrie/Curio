@@ -138,7 +138,7 @@ button { font: inherit; border: none; background: none; color: inherit; cursor: 
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 16px 16px 0;
+  padding: 16px 16px calc(64px + env(safe-area-inset-bottom));
   overflow-y: auto;
 }
 
@@ -207,10 +207,21 @@ button { font: inherit; border: none; background: none; color: inherit; cursor: 
 
 /* ============ tab bar ============ */
 .tabbar {
-  flex: none; display: flex; align-items: stretch;
+  position: fixed; bottom: 0; left: 50%;
+  width: 100%; max-width: 480px;
+  z-index: 20;
+  display: flex; align-items: stretch;
   border-top: 1px solid var(--line);
   background: var(--paper-card);
   padding-bottom: env(safe-area-inset-bottom);
+  transform: translateX(-50%) translateY(0);
+  transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+.tabbar.hide { transform: translateX(-50%) translateY(120%); }
+@media (prefers-reduced-motion: reduce) {
+  .tabbar { transition: none; }
+  .tabbar.hide { transform: translateX(-50%) translateY(0); } /* never auto-hide when motion is reduced */
 }
 .tabbar button {
   flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Challenge, LogEntry } from "./types";
 import { skillById, SKILLS, CHALLENGES } from "./data/challenges";
 import { rightNowCurio, swipeDeck, MOODS, type Mood } from "./deck";
@@ -461,7 +461,7 @@ function CatalogScreen({ openDetail }: { openDetail: (c: Challenge) => void }) {
   return (
     <div className="screen" style={{ paddingBottom: 0 }}>
       {header}
-      <div style={{ paddingTop: 12, paddingBottom: "calc(24px + env(safe-area-inset-bottom))" }}>
+      <div style={{ paddingTop: 12, paddingBottom: "calc(72px + env(safe-area-inset-bottom))" }}>
         {showLanding ? (
           <>
             <div className="t-tag t-soft" style={{ marginBottom: 10 }}>Browse by category</div>
@@ -686,7 +686,31 @@ export default function App() {
   const [tab, setTab] = useState<Tab>("today");
   const [view, setView] = useState<View>({ kind: "home" });
   const [onboarded, setOnboardedState] = useState(isOnboarded());
+  const [navHidden, setNavHidden] = useState(false);
   const focused = view.kind === "detail" || view.kind === "stamp" || view.kind === "done";
+
+  // Auto-hiding tab bar (Twitter/Instagram-style): shown by default, tucks away
+  // when you scroll down, snaps back the moment you scroll up. Scroll can come
+  // from any .screen (or the document) — a capture listener catches them all.
+  useEffect(() => {
+    let last = 0;
+    const onScroll = (e: Event) => {
+      const t = e.target;
+      const el = (t === document || t === window ? document.scrollingElement : t) as HTMLElement | null;
+      if (!el) return;
+      const y = el.scrollTop;
+      if (y < 12) { setNavHidden(false); last = y; return; } // always visible at the top
+      const dy = y - last;
+      if (Math.abs(dy) < 8) return; // ignore jitter
+      setNavHidden(dy > 0); // scrolling down hides, up shows
+      last = y;
+    };
+    document.addEventListener("scroll", onScroll, true);
+    return () => document.removeEventListener("scroll", onScroll, true);
+  }, []);
+
+  // Switching tabs always brings the bar back.
+  useEffect(() => { setNavHidden(false); }, [tab]);
 
   if (!onboarded) {
     return (
@@ -706,7 +730,7 @@ export default function App() {
       {tab === "catalog" && <CatalogScreen openDetail={(c) => { setTab("today"); setView({ kind: "detail", challenge: c }); }} />}
       {tab === "you" && <YouScreen />}
       {!(tab === "today" && focused) && (
-        <nav className="tabbar">
+        <nav className={navHidden ? "tabbar hide" : "tabbar"}>
           {(["today", "cabinet", "catalog", "you"] as Tab[]).map((t) => (
             <button key={t} className={tab === t ? "on" : ""} onClick={() => { navigator.vibrate?.(8); setTab(t); if (t === "today") setView({ kind: "home" }); }}>
               {ICONS[t]}
