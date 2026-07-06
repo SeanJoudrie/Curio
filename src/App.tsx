@@ -1,8 +1,8 @@
 import { useMemo, useRef, useState } from "react";
 import type { Challenge, LogEntry } from "./types";
 import { skillById, SKILLS, CHALLENGES } from "./data/challenges";
-import { todaysCurio, dealHand, rightNowCurio, swipeDeck, MOODS, type Mood } from "./deck";
-import { addLogEntry, addSkip, completedToday, getLog, skillsTried, todayStr, nudgeBoost, isOnboarded, setOnboarded, setBoosts, getBoosts, exportData, importData, currentStreak, toggleSaved, isSaved } from "./storage";
+import { rightNowCurio, swipeDeck, MOODS, type Mood } from "./deck";
+import { addLogEntry, addSkip, getLog, skillsTried, todayStr, nudgeBoost, isOnboarded, setOnboarded, setBoosts, getBoosts, exportData, importData, currentStreak, toggleSaved, isSaved } from "./storage";
 import { shareCard } from "./share";
 import { Sketch } from "./Sketch";
 import { ACHIEVEMENTS, unlockedIds, popNewUnlocks, type Achievement } from "./achievements";
@@ -10,7 +10,6 @@ import { ACHIEVEMENTS, unlockedIds, popNewUnlocks, type Achievement } from "./ac
 type Tab = "today" | "cabinet" | "catalog" | "you";
 type View =
   | { kind: "home" }
-  | { kind: "hand" }
   | { kind: "detail"; challenge: Challenge }
   | { kind: "stamp"; challenge: Challenge }
   | { kind: "done"; challenge: Challenge; rating: number; note?: string; photo?: string; newUnlocks?: Achievement[] };
@@ -37,26 +36,6 @@ function Field({ k, children, italic }: { k: string; children: React.ReactNode; 
       <div style={{ fontFamily: "var(--font-sans)", fontWeight: 700, fontSize: 12.5, letterSpacing: "0.01em", color: "var(--accent-ink)", marginBottom: 3 }}>{k}</div>
       <div style={{ fontSize: 14.5, lineHeight: 1.5, color: italic ? "var(--ink-soft)" : "var(--ink)", fontStyle: italic ? "italic" : "normal" }}>{children}</div>
     </div>
-  );
-}
-
-function ChallengeCard({ c, hero, onOpen }: { c: Challenge; hero?: boolean; onOpen: () => void }) {
-  const skill = skillById(c.skillId);
-  return (
-    <button onClick={onOpen} style={{ display: "block", width: "100%", textAlign: "left" }}>
-      <div className="card" style={hero ? { padding: 20 } : {}}>
-        <div className="wash" />
-        <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-          <div style={{ flex: 1 }}>
-            <div className="t-eyebrow">{skill?.name} · {LEVEL_LABEL[c.level]}</div>
-            <div className={hero ? "t-display" : "t-title"} style={{ margin: "8px 0 10px" }}>{c.title}</div>
-          </div>
-          <div style={{ flex: "none", opacity: 0.9 }}><Sketch id={c.id} skillId={c.skillId} size={hero ? 60 : 50} /></div>
-        </div>
-        <div className="t-soft" style={{ fontSize: 13.5, marginBottom: 14 }}>{c.microLesson.split(". ")[0] + "."}</div>
-        <Tags c={c} />
-      </div>
-    </button>
   );
 }
 
@@ -161,16 +140,11 @@ function SwipeDeck({ list, onExpand, onEmpty }: { list: Challenge[]; onExpand: (
 }
 
 function TodayScreen({ view, setView }: { view: View; setView: (v: View) => void }) {
-  const [rerolls, setRerolls] = useState(0);
   const [mood, setMood] = useState<Mood>("any");
-  const done = completedToday();
-  const curio = useMemo(() => todaysCurio(rerolls, mood), [rerolls, mood]);
   const rightNow = useMemo(() => rightNowCurio(), []);
-  const hand = useMemo(() => dealHand(curio.id, mood), [curio.id, mood]);
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning." : hour < 18 ? "Good afternoon." : "Good evening.";
   const tried = skillsTried().size;
-  const todayCount = getLog().filter((e) => e.date === todayStr()).length;
 
   if (view.kind === "detail") {
     const c = view.challenge;
@@ -258,19 +232,6 @@ function TodayScreen({ view, setView }: { view: View; setView: (v: View) => void
     );
   }
 
-  if (view.kind === "hand") {
-    return (
-      <div className="screen">
-        <button className="btn-link" style={{ alignSelf: "flex-start", paddingLeft: 0 }} onClick={() => setView({ kind: "home" })}>‹ Back</button>
-        <div className="t-eyebrow" style={{ marginBottom: 12 }}>Today's hand — {hand.length} cards, that's the deal</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12, paddingBottom: 16 }}>
-          {hand.map((c) => <div key={c.id} className="deal"><ChallengeCard c={c} onOpen={() => setView({ kind: "detail", challenge: c })} /></div>)}
-        </div>
-        <p className="t-soft" style={{ fontSize: 12.5, textAlign: "center", paddingBottom: 16 }}>That's today's hand. Tomorrow deals fresh.</p>
-      </div>
-    );
-  }
-
   // home — a swipe deck
   const deck = swipeDeck(mood);
   return (
@@ -286,7 +247,7 @@ function TodayScreen({ view, setView }: { view: View; setView: (v: View) => void
       </div>
       <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 12, marginBottom: 2, flex: "none" }}>
         {MOODS.map((m) => (
-          <button key={m.id} className={`chip${mood === m.id ? " on" : ""}`} onClick={() => { setMood(m.id); setRerolls(0); }}>{m.label}</button>
+          <button key={m.id} className={`chip${mood === m.id ? " on" : ""}`} onClick={() => setMood(m.id)}>{m.label}</button>
         ))}
       </div>
       <SwipeDeck
@@ -432,9 +393,10 @@ function CabinetScreen() {
   );
 }
 
-type CatFilter = "all" | "date" | "free" | "splurge" | "quick" | "todo";
+type CatFilter = "all" | "saved" | "date" | "free" | "splurge" | "quick" | "todo";
 const CAT_FILTERS: { id: CatFilter; label: string }[] = [
   { id: "all", label: "All" },
+  { id: "saved", label: "★ Saved" },
   { id: "todo", label: "Not done" },
   { id: "date", label: "Date" },
   { id: "quick", label: "Quick" },
@@ -456,6 +418,7 @@ function CatalogScreen({ openDetail }: { openDetail: (c: Challenge) => void }) {
     if (filter === "splurge") return c.budget.cost === "splurge";
     if (filter === "quick") return c.budget.time === "2m" || c.budget.time === "15m";
     if (filter === "todo") return !done.has(c.id);
+    if (filter === "saved") return isSaved(c.id);
     return true;
   };
   const results = CHALLENGES.filter(matches);
@@ -487,7 +450,7 @@ function CatalogScreen({ openDetail }: { openDetail: (c: Challenge) => void }) {
             </div>
           </button>
         ))}
-        {results.length === 0 && <p className="t-soft" style={{ fontSize: 13.5, textAlign: "center", padding: 20 }}>Nothing matches that — try clearing a filter.</p>}
+        {results.length === 0 && <p className="t-soft" style={{ fontSize: 13.5, textAlign: "center", padding: 20 }}>{filter === "saved" ? "No saved cards yet — swipe right (or tap ☆) on the deck to save one here." : "Nothing matches that — try clearing a filter."}</p>}
       </div>
     </div>
   );
