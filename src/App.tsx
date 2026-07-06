@@ -4,7 +4,7 @@ import { skillById, SKILLS, CHALLENGES } from "./data/challenges";
 import { rightNowCurio, swipeDeck, MOODS, type Mood } from "./deck";
 import { addLogEntry, addSkip, getLog, skillsTried, todayStr, nudgeBoost, isOnboarded, setOnboarded, setBoosts, getBoosts, exportData, importData, currentStreak, toggleSaved, isSaved } from "./storage";
 import { shareCard } from "./share";
-import { Sketch } from "./Sketch";
+import { Sketch, drawerHue } from "./Sketch";
 import { ACHIEVEMENTS, unlockedIds, popNewUnlocks, type Achievement } from "./achievements";
 
 type Tab = "today" | "cabinet" | "catalog" | "you";
@@ -404,15 +404,36 @@ const CAT_FILTERS: { id: CatFilter; label: string }[] = [
   { id: "splurge", label: "Splurge" },
 ];
 
+const META = (c: Challenge, withDrawer: boolean) =>
+  [withDrawer ? skillById(c.skillId)?.name : null, TIME_LABEL[c.budget.time].toLowerCase(), COST_LABEL[c.budget.cost].toLowerCase(), c.together ? "date" : null]
+    .filter(Boolean).join(" · ");
+
+function CatRow({ c, done, openDetail, showDrawer }: { c: Challenge; done: boolean; openDetail: (c: Challenge) => void; showDrawer: boolean }) {
+  return (
+    <button onClick={() => openDetail(c)}
+      style={{ display: "flex", width: "100%", textAlign: "left", alignItems: "center", gap: 11, padding: "10px 12px 10px 0",
+        background: "var(--paper-card)", border: "1px solid var(--line)", borderLeft: `4px solid ${drawerHue(c.skillId)}`, borderRadius: 10 }}>
+      <div style={{ flex: 1, minWidth: 0, paddingLeft: 12 }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: done ? "var(--ink-soft)" : "var(--ink)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          {done && <span style={{ color: "var(--teal)" }}>✓ </span>}{c.title}
+        </div>
+        <div style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 1, textTransform: "capitalize" }}>{META(c, showDrawer)}</div>
+      </div>
+      {isSaved(c.id) && <span style={{ color: "var(--star)", fontSize: 16, flex: "none", paddingRight: 12 }}>★</span>}
+    </button>
+  );
+}
+
 function CatalogScreen({ openDetail }: { openDetail: (c: Challenge) => void }) {
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<CatFilter>("all");
   const [drawer, setDrawer] = useState<string>("");
   const done = new Set(getLog().map((e) => e.challengeId));
+  const ql = q.trim().toLowerCase();
 
   const matches = (c: Challenge) => {
     if (drawer && c.skillId !== drawer) return false;
-    if (q && !(c.title.toLowerCase().includes(q.toLowerCase()) || (skillById(c.skillId)?.name.toLowerCase().includes(q.toLowerCase())))) return false;
+    if (ql && !(c.title.toLowerCase().includes(ql) || (skillById(c.skillId)?.name.toLowerCase().includes(ql)))) return false;
     if (filter === "date") return !!c.together;
     if (filter === "free") return c.budget.cost === "free";
     if (filter === "splurge") return c.budget.cost === "splurge";
@@ -422,44 +443,74 @@ function CatalogScreen({ openDetail }: { openDetail: (c: Challenge) => void }) {
     return true;
   };
   const results = CHALLENGES.filter(matches);
+  // Landing = the drawer index. Show it only when browsing with no query/filter/drawer.
+  const showLanding = !ql && filter === "all" && !drawer;
 
-  return (
-    <div className="screen">
-      <div className="t-eyebrow" style={{ margin: "4px 0 10px" }}>Catalog · {CHALLENGES.length} activities</div>
-      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search 171 activities…"
-        style={{ width: "100%", padding: "11px 14px", fontSize: 14, fontFamily: "inherit", background: "var(--paper-card)", border: "1px solid var(--line-strong)", borderRadius: 12, color: "var(--ink)", marginBottom: 10 }} />
-      <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 10 }}>
+  const header = (
+    <div style={{ position: "sticky", top: 0, zIndex: 3, background: "var(--paper)", margin: "0 -16px", padding: "6px 16px 10px", borderBottom: "1px solid var(--line)" }}>
+      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search ${CHALLENGES.length} activities…`}
+        style={{ width: "100%", padding: "11px 14px", fontSize: 14, fontFamily: "inherit", background: "var(--paper-card)", border: "1px solid var(--line-strong)", borderRadius: 12, color: "var(--ink)" }} />
+      <div style={{ display: "flex", gap: 6, overflowX: "auto", marginTop: 9 }}>
         {CAT_FILTERS.map((f) => (
           <button key={f.id} className={`chip${filter === f.id ? " on" : ""}`} onClick={() => setFilter(f.id)}>{f.label}</button>
         ))}
       </div>
-      <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 12 }}>
-        <button className={`chip${drawer === "" ? " on" : ""}`} onClick={() => setDrawer("")}>All drawers</button>
-        {SKILLS.map((s) => (
-          <button key={s.id} className={`chip${drawer === s.id ? " on" : ""}`} onClick={() => setDrawer(drawer === s.id ? "" : s.id)}>{s.name}</button>
-        ))}
-      </div>
-      <div className="t-tag t-soft" style={{ marginBottom: 8 }}>{results.length} {results.length === 1 ? "match" : "matches"}</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingBottom: 16 }}>
-        {results.map((c) => (
-          <button key={c.id} onClick={() => openDetail(c)} style={{ display: "flex", width: "100%", textAlign: "left", gap: 11, padding: "9px 11px", background: "var(--paper-card)", border: "1px solid var(--line)", borderRadius: 12, alignItems: "center" }}>
-            <div style={{ flex: "none", opacity: done.has(c.id) ? 0.5 : 1 }}><Sketch id={c.id} skillId={c.skillId} size={40} /></div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13.5, fontWeight: 600, color: done.has(c.id) ? "var(--ink-soft)" : "var(--ink)" }}>{done.has(c.id) ? "✓ " : ""}{c.title}</div>
-              <div className="t-tag t-soft" style={{ marginTop: 2 }}>{skillById(c.skillId)?.name} · {TIME_LABEL[c.budget.time]} · {COST_LABEL[c.budget.cost]}{c.together ? " · Date" : ""}</div>
+    </div>
+  );
+
+  return (
+    <div className="screen" style={{ paddingBottom: 0 }}>
+      {header}
+      <div style={{ paddingTop: 12, paddingBottom: "calc(24px + env(safe-area-inset-bottom))" }}>
+        {showLanding ? (
+          <>
+            <div className="t-tag t-soft" style={{ marginBottom: 10 }}>Browse by category</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9 }}>
+              {SKILLS.map((s) => {
+                const n = CHALLENGES.filter((c) => c.skillId === s.id).length;
+                if (!n) return null;
+                const doneN = CHALLENGES.filter((c) => c.skillId === s.id && done.has(c.id)).length;
+                return (
+                  <button key={s.id} onClick={() => setDrawer(s.id)}
+                    style={{ textAlign: "left", background: "var(--paper-card)", border: "1px solid var(--line)", borderTop: `3px solid ${drawerHue(s.id)}`, borderRadius: 12, padding: "12px 13px", minHeight: 88, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ width: 9, height: 9, borderRadius: 3, background: drawerHue(s.id), flex: "none" }} />
+                      <span style={{ fontFamily: "var(--font-serif)", fontWeight: 600, fontSize: 15, lineHeight: 1.1 }}>{s.name}</span>
+                    </div>
+                    <div className="t-tag t-soft" style={{ marginTop: 8 }}>{n} activities{doneN ? ` · ${doneN} done` : ""}</div>
+                  </button>
+                );
+              })}
             </div>
-          </button>
-        ))}
-        {results.length === 0 && <p className="t-soft" style={{ fontSize: 13.5, textAlign: "center", padding: 20 }}>{filter === "saved" ? "No saved cards yet — swipe right (or tap ☆) on the deck to save one here." : "Nothing matches that — try clearing a filter."}</p>}
+          </>
+        ) : (
+          <>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+              {drawer && (
+                <button className="btn-link" style={{ padding: 0, minHeight: 0, color: "var(--accent-ink)", fontWeight: 700 }} onClick={() => setDrawer("")}>‹ All</button>
+              )}
+              <span style={{ fontFamily: "var(--font-serif)", fontWeight: 600, fontSize: 17 }}>{drawer ? skillById(drawer)?.name : "Results"}</span>
+              <span className="t-tag t-soft" style={{ marginLeft: "auto" }}>{results.length}</span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+              {results.map((c) => <CatRow key={c.id} c={c} done={done.has(c.id)} openDetail={openDetail} showDrawer={!drawer} />)}
+              {results.length === 0 && (
+                <p className="t-soft" style={{ fontSize: 13.5, textAlign: "center", padding: 24 }}>
+                  {filter === "saved" ? "No saved cards yet — swipe right (or tap ☆) on the deck to save one here." : "Nothing matches that — try clearing a filter."}
+                </p>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
 }
 
 // avoids circular import gymnastics in one file
-import { SKILLS as _SKILLS, CHALLENGES as _CHALLENGES } from "./data/challenges";
+import { CHALLENGES as _CHALLENGES } from "./data/challenges";
 function require_challenges() {
-  return { SKILLS: _SKILLS, CHALLENGES: _CHALLENGES };
+  return { SKILLS, CHALLENGES: _CHALLENGES };
 }
 
 function Onboarding({ onDone }: { onDone: (firstWin?: Challenge) => void }) {

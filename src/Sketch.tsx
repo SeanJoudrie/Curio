@@ -38,6 +38,10 @@ const MOTIF: Record<string, string> = {
   STY: "M42 34a12 12 0 100 24 12 12 0 000-24z M42 58v12 M36 70h12 M60 34v20 M56 34h8l-2 12h-4z",
 };
 
+export function drawerHue(skillId: string): string {
+  return HUE[skillId] ?? "#EF5F3C";
+}
+
 export function Sketch({ id, skillId, size = 56 }: { id: string; skillId: string; size?: number }) {
   const s = seed(id);
   const rot = ((s % 5) - 2) * 1.1; // ±~2° individual tilt for character
