@@ -132,7 +132,7 @@ function SwipeDeck({ list, onExpand, onEmpty }: { list: Challenge[]; onExpand: (
             <button onClick={(e) => { e.stopPropagation(); star(); }} style={{ fontSize: 22, lineHeight: 1, color: saved ? "var(--star)" : "var(--ink-soft)", flex: "none" }} aria-label="Save">{saved ? "★" : "☆"}</button>
           </div>
           <h2 className="t-display" style={{ fontSize: 30, margin: "10px 0 4px" }}>{c.title}</h2>
-          <div style={{ margin: "6px auto 10px" }}><Sketch id={c.id} skillId={c.skillId} size={72} /></div>
+          <div style={{ margin: "6px auto 10px" }}><Sketch id={c.id} skillId={c.skillId} title={c.title} size={72} /></div>
           <p className="t-soft" style={{ fontSize: 14, lineHeight: 1.5, flex: 1 }}>{c.microLesson.split(". ")[0]}.</p>
           <Tags c={c} />
           <div className="t-tag t-soft" style={{ textAlign: "center", marginTop: 12, opacity: 0.7 }}>← skip · tap to open · save →</div>
@@ -165,7 +165,7 @@ function TodayScreen({ view, setView }: { view: View; setView: (v: View) => void
             <div className="t-eyebrow">{skill?.name} · {LEVEL_LABEL[c.level]}</div>
             <h1 className="t-title" style={{ fontSize: 24, margin: "6px 0 16px" }}>{c.title}</h1>
           </div>
-          <div style={{ flex: "none" }}><Sketch id={c.id} skillId={c.skillId} size={64} /></div>
+          <div style={{ flex: "none" }}><Sketch id={c.id} skillId={c.skillId} title={c.title} size={64} /></div>
         </div>
         <div style={{ flex: 1 }}>
           <Field k="Micro-lesson">{c.microLesson}</Field>
@@ -213,7 +213,7 @@ function TodayScreen({ view, setView }: { view: View; setView: (v: View) => void
     const nowToday = getLog().filter((e) => e.date === todayStr()).length;
     return (
       <div className="screen" style={{ justifyContent: "center", textAlign: "center", gap: 10 }}>
-        <div className="token-land" style={{ margin: "0 auto" }}><Sketch id={view.challenge.id} skillId={view.challenge.skillId} size={84} /></div>
+        <div className="token-land" style={{ margin: "0 auto" }}><Sketch id={view.challenge.id} skillId={view.challenge.skillId} title={view.challenge.title} size={84} /></div>
         <div className="t-label" style={{ letterSpacing: "0.12em" }}>◦ COLLECTED ◦</div>
         <h1 className="t-display">Into the cabinet it goes.</h1>
         <p className="t-soft" style={{ margin: "6px auto 0", maxWidth: "38ch" }}>
@@ -388,7 +388,7 @@ function CabinetScreen() {
                 <div style={{ display: "flex", gap: 6, marginTop: 9, flexWrap: "wrap" }}>
                   {log.filter((e) => e.challengeId.split("-")[0] === sid).map((e, i, arr) => (
                     <div key={i} className={i === arr.length - 1 ? "token-land" : undefined}>
-                      <Sketch id={e.challengeId} skillId={sid} size={38} />
+                      <Sketch id={e.challengeId} skillId={sid} title={_CHALLENGES.find((x) => x.id === e.challengeId)?.title} size={38} />
                     </div>
                   ))}
                 </div>
