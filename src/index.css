@@ -58,20 +58,20 @@
 
 /* ============ Curio design tokens — CURIO.md §18 ============ */
 :root {
-  --paper: #E9E3D0;
-  --paper-card: #F8F4E7;
-  --ink: #1C2521;
-  --ink-soft: #4B564E;
-  --teal: #1F5C52;
-  --teal-strong: #163F38;
-  --ochre: #B9791C;
-  --stamp: #A9402A;
-  --plum: #6B4E8A;
-  --gold: #C79A2E;
-  --line: rgba(28, 37, 33, 0.14);
-  --line-strong: rgba(28, 37, 33, 0.28);
-  --shadow: 0 1px 0 rgba(28, 37, 33, 0.06), 0 8px 20px -14px rgba(28, 37, 33, 0.35);
-  --on-teal: #F8F4E7;
+  --paper: #FBEFDD;
+  --paper-card: #FFFBF4;
+  --ink: #2B2233;
+  --ink-soft: #6F6178;
+  --teal: #F15A38;          /* CORAL — primary/brand */
+  --teal-strong: #CE4626;
+  --ochre: #7C5CF7;         /* VIOLET — category eyebrows */
+  --stamp: #E23E6D;         /* BERRY — the rating stamp */
+  --plum: #F5B13B;          /* SUNNY GOLD — joy / celebration */
+  --gold: #F5B13B;
+  --line: rgba(43, 34, 51, 0.12);
+  --line-strong: rgba(43, 34, 51, 0.24);
+  --shadow: 0 1px 0 rgba(43, 34, 51, 0.05), 0 12px 26px -16px rgba(43, 34, 51, 0.32);
+  --on-teal: #FFF7EF;
 
   --font-serif: "Fraunces", ui-serif, Georgia, "Palatino Linotype", serif;
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
@@ -84,20 +84,20 @@
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --paper: #161F1B;
-    --paper-card: #1E2A24;
-    --ink: #E9E4D2;
-    --ink-soft: #A9B3A6;
-    --teal: #6FBFAE;
-    --teal-strong: #9AD8C9;
-    --ochre: #E0B255;
-    --stamp: #E08669;
-    --plum: #B79BD8;
-    --gold: #E7C766;
-    --line: rgba(233, 228, 210, 0.14);
-    --line-strong: rgba(233, 228, 210, 0.26);
-    --shadow: 0 1px 0 rgba(0, 0, 0, 0.3), 0 10px 24px -16px rgba(0, 0, 0, 0.6);
-    --on-teal: #0E1512;
+    --paper: #201826;
+    --paper-card: #2C2336;
+    --ink: #F3ECFA;
+    --ink-soft: #B4A7C2;
+    --teal: #FF7A56;
+    --teal-strong: #FF9270;
+    --ochre: #A98CFF;
+    --stamp: #FF6FA0;
+    --plum: #F5C45A;
+    --gold: #F5C45A;
+    --line: rgba(243, 236, 250, 0.13);
+    --line-strong: rgba(243, 236, 250, 0.24);
+    --shadow: 0 1px 0 rgba(0, 0, 0, 0.3), 0 12px 26px -16px rgba(0, 0, 0, 0.6);
+    --on-teal: #2B1810;
   }
 }
 
@@ -150,7 +150,7 @@ button { font: inherit; border: none; background: none; color: inherit; cursor: 
 }
 .card .wash {
   position: absolute; inset: 0; pointer-events: none;
-  background: radial-gradient(120% 80% at 100% 0%, rgba(31, 92, 82, 0.10), transparent 60%);
+  background: radial-gradient(120% 80% at 100% 0%, color-mix(in srgb, var(--teal) 12%, transparent), transparent 60%);
 }
 .btn-primary {
   display: block; width: 100%;
@@ -262,4 +262,40 @@ input:focus { border-color: var(--teal) !important; }
 .tabbar button.on::before {
   content: ""; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
   width: 22px; height: 3px; border-radius: 0 0 3px 3px; background: var(--teal);
+}
+
+/* ============ swipe deck ============ */
+.deck-stack { position: relative; flex: 1; min-height: 380px; }
+.swipe-card {
+  position: absolute; inset: 0;
+  background: var(--paper-card); border: 1px solid var(--line-strong);
+  border-radius: 22px; box-shadow: var(--shadow);
+  padding: 20px; display: flex; flex-direction: column;
+  touch-action: pan-y; user-select: none; -webkit-user-select: none;
+  overflow: hidden; cursor: grab;
+}
+.swipe-card:active { cursor: grabbing; }
+.swipe-card.peek { transform: scale(0.94) translateY(14px); opacity: 0.6; pointer-events: none; }
+.swipe-badge {
+  position: absolute; top: 22px; font-family: var(--font-mono); font-weight: 700;
+  font-size: 26px; letter-spacing: 0.06em; padding: 6px 14px; border-radius: 10px;
+  border: 3px solid; opacity: 0; transition: opacity 0.1s; text-transform: uppercase;
+}
+.swipe-badge.nope { left: 20px; color: var(--stamp); border-color: var(--stamp); transform: rotate(-14deg); }
+.swipe-badge.save { right: 20px; color: var(--teal); border-color: var(--teal); transform: rotate(14deg); }
+.deck-actions { display: flex; align-items: center; justify-content: center; gap: 18px; padding: 14px 0 6px; flex: none; }
+.deck-actions button {
+  width: 58px; height: 58px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--line-strong); background: var(--paper-card); box-shadow: var(--shadow); font-size: 22px;
+}
+.deck-actions button:active { transform: scale(0.92); }
+.deck-actions .big { width: 66px; height: 66px; font-size: 26px; }
+.deck-actions .skip { color: var(--stamp); border-color: color-mix(in srgb, var(--stamp) 40%, var(--line-strong)); }
+.deck-actions .save { color: var(--gold); border-color: color-mix(in srgb, var(--gold) 45%, var(--line-strong)); }
+.deck-actions .go { color: var(--on-teal); background: var(--teal); border-color: var(--teal); }
+.rn-pill {
+  display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-weight: 700;
+  font-size: 11px; letter-spacing: 0.03em; color: var(--teal);
+  background: color-mix(in srgb, var(--teal) 12%, transparent); border: 1px solid color-mix(in srgb, var(--teal) 35%, transparent);
+  border-radius: 999px; padding: 7px 13px; white-space: nowrap;
 }

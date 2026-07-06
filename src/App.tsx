@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { Challenge, LogEntry } from "./types";
 import { skillById, SKILLS, CHALLENGES } from "./data/challenges";
-import { todaysCurio, dealHand, rightNowCurio, MOODS, type Mood } from "./deck";
-import { addLogEntry, addSkip, completedToday, getLog, skillsTried, todayStr, nudgeBoost, isOnboarded, setOnboarded, setBoosts, getBoosts, exportData, importData, currentStreak } from "./storage";
+import { todaysCurio, dealHand, rightNowCurio, swipeDeck, MOODS, type Mood } from "./deck";
+import { addLogEntry, addSkip, completedToday, getLog, skillsTried, todayStr, nudgeBoost, isOnboarded, setOnboarded, setBoosts, getBoosts, exportData, importData, currentStreak, toggleSaved, isSaved } from "./storage";
 import { shareCard } from "./share";
 import { Sketch } from "./Sketch";
 import { ACHIEVEMENTS, unlockedIds, popNewUnlocks, type Achievement } from "./achievements";
@@ -57,6 +57,86 @@ function ChallengeCard({ c, hero, onOpen }: { c: Challenge; hero?: boolean; onOp
         <Tags c={c} />
       </div>
     </button>
+  );
+}
+
+const buzzq = (ms: number) => navigator.vibrate?.(ms);
+
+function SwipeDeck({ list, onExpand, onEmpty }: { list: Challenge[]; onExpand: (c: Challenge) => void; onEmpty: React.ReactNode }) {
+  const [i, setI] = useState(0);
+  const [dx, setDx] = useState(0);
+  const [exiting, setExiting] = useState<0 | 1 | -1>(0);
+  const [savedTick, setSavedTick] = useState(0);
+  const startX = useRef(0);
+  const moved = useRef(false);
+  const drag = useRef(false);
+
+  const c = list[i];
+  const next = list[i + 1];
+  const THRESH = 90;
+
+  const advance = () => { setExiting(0); setDx(0); setI((v) => v + 1); };
+  const fling = (dir: 1 | -1) => {
+    if (!c) return;
+    if (dir === -1) addSkip(c.id);
+    else if (!isSaved(c.id)) toggleSaved(c.id);
+    buzzq(15);
+    setExiting(dir);
+    setTimeout(advance, 220);
+  };
+  const star = () => { if (c) { toggleSaved(c.id); buzzq(15); setSavedTick((t) => t + 1); } };
+
+  const onDown = (e: React.PointerEvent) => { if (exiting) return; drag.current = true; moved.current = false; startX.current = e.clientX; (e.target as HTMLElement).setPointerCapture?.(e.pointerId); };
+  const onMove = (e: React.PointerEvent) => { if (!drag.current) return; const nx = e.clientX - startX.current; if (Math.abs(nx) > 5) moved.current = true; setDx(nx); };
+  const onUp = () => {
+    if (!drag.current) return;
+    drag.current = false;
+    if (!moved.current) { if (c) onExpand(c); setDx(0); return; }
+    if (dx < -THRESH) fling(-1);
+    else if (dx > THRESH) fling(1);
+    else setDx(0);
+  };
+
+  if (!c) return <div className="card" style={{ textAlign: "center", padding: 30, marginTop: 8 }}>{onEmpty}</div>;
+
+  const tx = exiting ? exiting * 620 : dx;
+  const rot = tx / 22;
+  const saved = isSaved(c.id) || savedTick < 0; // savedTick only forces re-render
+  const skill = skillById(c.skillId);
+
+  return (
+    <>
+      <div className="deck-stack">
+        {next && (
+          <div className="swipe-card peek">
+            <div className="t-eyebrow">{skillById(next.skillId)?.name}</div>
+            <div className="t-title" style={{ fontSize: 24, marginTop: 8 }}>{next.title}</div>
+          </div>
+        )}
+        <div
+          className="swipe-card"
+          style={{ transform: `translateX(${tx}px) rotate(${rot}deg)`, transition: drag.current ? "none" : "transform 0.22s ease" }}
+          onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
+        >
+          <div className="swipe-badge nope" style={{ opacity: Math.max(0, Math.min(1, -dx / 70)) }}>skip</div>
+          <div className="swipe-badge save" style={{ opacity: Math.max(0, Math.min(1, dx / 70)) }}>save ★</div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+            <div className="t-eyebrow">{skill?.name} · {LEVEL_LABEL[c.level]}</div>
+            <button onClick={(e) => { e.stopPropagation(); star(); }} style={{ fontSize: 22, lineHeight: 1, color: saved ? "var(--gold)" : "var(--ink-soft)", flex: "none" }} aria-label="Save">{saved ? "★" : "☆"}</button>
+          </div>
+          <h2 className="t-display" style={{ fontSize: 30, margin: "10px 0 4px" }}>{c.title}</h2>
+          <div style={{ margin: "6px auto 10px" }}><Sketch id={c.id} skillId={c.skillId} size={72} /></div>
+          <p className="t-soft" style={{ fontSize: 14, lineHeight: 1.5, flex: 1 }}>{c.microLesson.split(". ")[0]}.</p>
+          <Tags c={c} />
+          <div className="t-tag t-soft" style={{ textAlign: "center", marginTop: 12, opacity: 0.7 }}>← skip · tap to open · save →</div>
+        </div>
+      </div>
+      <div className="deck-actions">
+        <button className="skip" onClick={() => fling(-1)} aria-label="Skip">✕</button>
+        <button className="go big" onClick={() => onExpand(c)} aria-label="Open">↑</button>
+        <button className="save" onClick={star} aria-label="Save">{isSaved(c.id) ? "★" : "☆"}</button>
+      </div>
+    </>
   );
 }
 
@@ -171,49 +251,35 @@ function TodayScreen({ view, setView }: { view: View; setView: (v: View) => void
     );
   }
 
-  // home
+  // home — a swipe deck
+  const deck = swipeDeck(mood);
   return (
     <div className="screen">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
         <div>
-          <div className="t-title" style={{ fontSize: 21 }}>{greeting}</div>
-          <div className="t-tag t-soft" style={{ marginTop: 2 }}>{todayStr()}{tried > 0 ? ` · ${tried} skills tried` : ""}</div>
+          <div className="t-title" style={{ fontSize: 22 }}>Today's deck</div>
+          <div className="t-tag t-soft" style={{ marginTop: 1 }}>{greeting}{tried > 0 ? ` · ${tried} tried` : ""}</div>
         </div>
+        {rightNow && (
+          <button className="rn-pill" onClick={() => setView({ kind: "detail", challenge: rightNow })}>⚡ 2-min now</button>
+        )}
       </div>
-      {todayCount > 0 && (
-        <div className="card" style={{ padding: "11px 15px", marginBottom: 14, display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 18 }}>✓</span>
-          <span style={{ fontSize: 13, flex: 1 }}><b style={{ color: "var(--ink)" }}>{todayCount} done today.</b> No cap here — keep going if you're on a roll.</span>
-        </div>
-      )}
-      <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 12, marginBottom: 2 }}>
+      <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 12, marginBottom: 2, flex: "none" }}>
         {MOODS.map((m) => (
           <button key={m.id} className={`chip${mood === m.id ? " on" : ""}`} onClick={() => { setMood(m.id); setRerolls(0); }}>{m.label}</button>
         ))}
       </div>
-      {rightNow && (
-        <button onClick={() => setView({ kind: "detail", challenge: rightNow })} style={{ display: "block", width: "100%", textAlign: "left", marginBottom: 14 }}>
-          <div className="card" style={{ padding: "12px 15px", display: "flex", alignItems: "center", gap: 12 }}>
-            <span className="t-label" style={{ flex: "none" }}>RIGHT NOW · 2 MIN</span>
-            <span style={{ fontSize: 13.5, fontWeight: 600, flex: 1 }}>{rightNow.title}</span>
-            <span className="t-soft">›</span>
-          </div>
-        </button>
-      )}
-      <div className="t-eyebrow" style={{ marginBottom: 8 }}>{todayCount > 0 ? "Another curio" : "Today's Curio"}</div>
-      <ChallengeCard c={curio} hero onOpen={() => setView({ kind: "detail", challenge: curio })} />
-      <div style={{ padding: "12px 0 16px" }}>
-        <button className="btn-primary" onClick={() => setView({ kind: "detail", challenge: curio })}>{todayCount > 0 ? "Start this one" : "Start today's curio"}</button>
-        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-          <button className="btn-ghost" style={{ flex: 1 }} onClick={() => setRerolls(rerolls + 1)}>↻ Not this — reroll</button>
-          <button className="btn-ghost" style={{ flex: 1 }} onClick={() => setView({ kind: "hand" })}>Scroll a hand →</button>
-        </div>
-      </div>
-      <div style={{ flex: 1 }} />
-      <div style={{ textAlign: "center", padding: "16px 0 20px", borderTop: "1px solid var(--line)" }}>
-        <div className="t-tag t-soft" style={{ letterSpacing: "0.06em" }}>ONE SMALL THING A DAY · DO IT SOLO OR TOGETHER</div>
-        <div className="t-soft" style={{ fontSize: 12, marginTop: 4, fontStyle: "italic" }}>Trying is the win. Skill is a side effect.</div>
-      </div>
+      <SwipeDeck
+        key={mood}
+        list={deck}
+        onExpand={(c) => setView({ kind: "detail", challenge: c })}
+        onEmpty={
+          <>
+            <div className="t-title" style={{ marginBottom: 6 }}>That's the deck for now.</div>
+            <p className="t-soft" style={{ fontSize: 13.5 }}>Nice taste. Try another filter, or come back — fresh cards tomorrow.</p>
+          </>
+        }
+      />
     </div>
   );
 }

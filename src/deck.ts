@@ -10,21 +10,40 @@ function hash(s: string): number {
 }
 
 // Budget moods (CURIO.md §3) — one tap, not three dials.
-export type Mood = "any" | "date" | "cozy" | "quick" | "splurge";
+export type Mood = "any" | "free" | "cheap" | "splurge" | "date" | "quick";
 export const MOODS: { id: Mood; label: string }[] = [
-  { id: "any", label: "Anything" },
-  { id: "date", label: "💞 Date night" },
-  { id: "cozy", label: "🌙 Cozy in" },
-  { id: "quick", label: "⏱ Killing 15 min" },
-  { id: "splurge", label: "✨ Treat yourselves" },
+  { id: "any", label: "All" },
+  { id: "free", label: "🆓 Free" },
+  { id: "cheap", label: "💵 Under $20" },
+  { id: "splurge", label: "✨ Splurge" },
+  { id: "date", label: "💞 Date" },
+  { id: "quick", label: "⏱ Quick" },
 ];
 
 function fitsMood(c: Challenge, m: Mood): boolean {
   if (m === "any") return true;
+  if (m === "free") return c.budget.cost === "free";
+  if (m === "cheap") return c.budget.cost === "cheap";
+  if (m === "splurge") return c.budget.cost === "splurge";
   if (m === "date") return c.together === true;
-  if (m === "cozy") return c.budget.setting === "home" && c.budget.cost !== "splurge";
   if (m === "quick") return c.budget.time === "2m" || c.budget.time === "15m";
-  return c.budget.cost === "splurge"; // treat yourselves
+  return true;
+}
+
+// An ordered, boost-weighted deck to swipe through (CURIO.md §3).
+export function swipeDeck(mood: Mood): Challenge[] {
+  const done = completedChallengeIds();
+  const skipped = new Set(getSkips());
+  const boosts = getBoosts();
+  let fresh = CHALLENGES.filter((c) => fitsMood(c, mood) && !done.has(c.id) && !skipped.has(c.id) && (boosts[c.skillId] ?? 0) > -2 && c.budget.time !== "2m");
+  if (fresh.length === 0) fresh = CHALLENGES.filter((c) => fitsMood(c, mood) && !done.has(c.id) && c.budget.time !== "2m");
+  const seed = hash(todayStr() + ":swipe:" + mood);
+  // boost-weighted shuffle: boosted drawers float up
+  return fresh
+    .map((c) => ({ c, k: (hash(c.id + seed) % 1000) - (boosts[c.skillId] ?? 0) * 140 }))
+    .sort((a, b) => a.k - b.k)
+    .map((x) => x.c)
+    .slice(0, 40);
 }
 
 function pool(mood: Mood): Challenge[] {

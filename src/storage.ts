@@ -102,3 +102,17 @@ export function currentStreak(): number {
   while (days.has(key(d))) { streak++; d.setDate(d.getDate() - 1); }
   return streak;
 }
+
+// ---- Saved / starred challenges (swipe right or tap the star) ----
+const SAVED_KEY = "curio.saved.v1";
+export function getSaved(): string[] {
+  try { return JSON.parse(localStorage.getItem(SAVED_KEY) ?? "[]"); } catch { return []; }
+}
+export function isSaved(id: string): boolean { return getSaved().includes(id); }
+export function toggleSaved(id: string): boolean {
+  const s = getSaved();
+  const i = s.indexOf(id);
+  if (i >= 0) s.splice(i, 1); else s.push(id);
+  localStorage.setItem(SAVED_KEY, JSON.stringify(s));
+  return i < 0; // true if now saved
+}
