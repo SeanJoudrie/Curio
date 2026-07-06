@@ -1,6 +1,7 @@
 import type { Skill, Challenge } from "../types";
 import { MORE } from "./moreChallenges";
 import { MORE2 } from "./moreChallenges2";
+import { MORE3 } from "./moreChallenges3";
 
 // Every challenge is a ONE-DAY activity — solo, or great as a date. Budgets run
 // free → cheap → splurge (the "if you've got money" tier: classes, kits, tastings).
@@ -525,5 +526,6 @@ export const CHALLENGES: Challenge[] = [
 
 CHALLENGES.push(...MORE);
 CHALLENGES.push(...MORE2);
+CHALLENGES.push(...MORE3);
 
 export const skillById = (id: string): Skill | undefined => SKILLS.find((s) => s.id === id);
