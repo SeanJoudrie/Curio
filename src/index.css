@@ -301,6 +301,26 @@ input:focus { border-color: var(--teal) !important; }
 }
 .swipe-badge.nope { left: 20px; color: var(--stamp); border-color: var(--stamp); transform: rotate(-14deg); }
 .swipe-badge.save { right: 20px; color: var(--go); border-color: var(--go); transform: rotate(14deg); }
+.card-lesson { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+/* Short screens (SE, older phones): fit the card so nothing clips. */
+@media (max-height: 720px) {
+  .deck-stack { min-height: 240px; }
+  .swipe-card { padding: 14px 18px; }
+  .swipe-card .card-face { margin: 0 !important; justify-content: center; flex: 1; }
+  .swipe-card .card-photo { max-height: 18vh !important; aspect-ratio: auto !important; margin-bottom: 10px !important; }
+  .swipe-card .card-title { font-size: 22px !important; margin-bottom: 6px !important; }
+  .swipe-card .card-lesson { -webkit-line-clamp: 2; }
+  .swipe-card .deck-hint { display: none; }
+}
+@media (max-height: 600px) {
+  .swipe-card .card-photo { max-height: 13vh !important; }
+  .swipe-card .card-title { font-size: 20px !important; }
+  .swipe-card .card-lesson { -webkit-line-clamp: 1; }
+}
+/* Reduced motion: the deck settles instantly, no fling animation. */
+@media (prefers-reduced-motion: reduce) {
+  .swipe-card { transition: none !important; }
+}
 .deck-actions { display: flex; align-items: center; justify-content: center; gap: 18px; padding: 14px 0 6px; flex: none; }
 .deck-actions button {
   width: 58px; height: 58px; border-radius: 50%; display: flex; align-items: center; justify-content: center;

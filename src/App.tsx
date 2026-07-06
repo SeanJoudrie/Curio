@@ -44,7 +44,7 @@ function CardImage({ c, size }: { c: Challenge; size: number }) {
   const [err, setErr] = useState(false);
   const src = c.image ?? themePhoto(c.title) ?? drawerPhoto(c.skillId);
   if (src && !err) {
-    return <img src={src} alt="" draggable={false} onError={() => setErr(true)}
+    return <img className="card-photo" src={src} alt="" draggable={false} onError={() => setErr(true)}
       style={{ width: "100%", aspectRatio: "16 / 9", objectFit: "cover", borderRadius: 14, border: "1px solid var(--line)", marginBottom: 14 }} />;
   }
   return <div style={{ margin: "0 auto 14px" }}><Sketch id={c.id} skillId={c.skillId} title={c.title} size={size} /></div>;
@@ -109,13 +109,13 @@ function DeckCardFace({ c, saved, dx, onStar }: { c: Challenge; saved: boolean; 
           <Icon name={saved ? "starFill" : "star"} size={22} />
         </button>
       </div>
-      <div style={{ margin: "auto 0", display: "flex", flexDirection: "column" }}>
+      <div className="card-face" style={{ margin: "auto 0", display: "flex", flexDirection: "column" }}>
         <CardImage c={c} size={116} />
-        <h2 className="t-display" style={{ fontSize: 30, margin: "0 0 8px" }}>{c.title}</h2>
-        <p className="t-soft" style={{ fontSize: 14, lineHeight: 1.5, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{firstSentence(c.microLesson)}</p>
+        <h2 className="t-display card-title" style={{ fontSize: 30, margin: "0 0 8px" }}>{c.title}</h2>
+        <p className="t-soft card-lesson" style={{ fontSize: 14, lineHeight: 1.5 }}>{firstSentence(c.microLesson)}</p>
       </div>
       <CardMeta c={c} />
-      <div className="t-tag t-soft" style={{ textAlign: "center", marginTop: 14, opacity: 0.6 }}>← skip · tap to open · save →</div>
+      <div className="t-tag t-soft deck-hint" style={{ textAlign: "center", marginTop: 14, opacity: 0.6 }}>← skip · tap to open · save →</div>
     </>
   );
 }
@@ -233,6 +233,9 @@ function SwipeDeck({ list, onExpand, onEmpty }: { list: Challenge[]; onExpand: (
 function TodayScreen({ view, setView }: { view: View; setView: (v: View) => void }) {
   const [mood, setMood] = useState<Mood>("any");
   const rightNow = useMemo(() => rightNowCurio(), []);
+  // Deck memoized per mood — MUST be declared with the other hooks (before any
+  // conditional return) to satisfy the Rules of Hooks.
+  const deck = useMemo(() => swipeDeck(mood), [mood]);
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning." : hour < 18 ? "Good afternoon." : "Good evening.";
   const tried = skillsTried().size;
@@ -319,8 +322,8 @@ function TodayScreen({ view, setView }: { view: View; setView: (v: View) => void
     );
   }
 
-  // home — a swipe deck
-  const deck = swipeDeck(mood);
+  // home — a swipe deck (memoized above so skipping doesn't reshuffle the list
+  // under the index, and the hand stays finite — a decision, not a scroll).
   return (
     <div className="screen">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
@@ -416,7 +419,9 @@ function StampScreen({ challenge, onDone }: { challenge: Challenge; onDone: (r: 
             if (note.trim()) entry.note = note.trim();
             if (tag) entry.tag = tag;
             if (photo) entry.photoRef = photo;
-            addLogEntry(entry);
+            const res = addLogEntry(entry);
+            if (res === "ok-no-photo") alert("Curio saved! Your device storage is full, so the photo couldn't be kept. Free up space in You → Advanced to keep photos.");
+            else if (res === "fail") { alert("Storage is full, so this couldn't be saved. Export your cabinet in You → Advanced, then it'll have room again."); return; }
             buzz(35); // the thunk
             // Every stamp quietly tunes the deck (CURIO.md §4) — tag-aware:
             // "too hard" means offer easier, not mute the whole drawer.

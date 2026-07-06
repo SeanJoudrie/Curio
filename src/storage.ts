@@ -9,6 +9,12 @@ export function todayStr(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+// All writes go through this so a full quota (or private-mode) never throws
+// mid-action and crashes the app. Returns false when the write didn't land.
+function safeSet(key: string, value: string): boolean {
+  try { localStorage.setItem(key, value); return true; } catch { return false; }
+}
+
 export function getLog(): LogEntry[] {
   try {
     return JSON.parse(localStorage.getItem(LOG_KEY) ?? "[]") as LogEntry[];
@@ -17,10 +23,19 @@ export function getLog(): LogEntry[] {
   }
 }
 
-export function addLogEntry(entry: LogEntry): void {
+// Photos are base64 data-URLs and can push localStorage past its ~5MB quota.
+// If the write fails, drop the (large) photo and retry so the curio itself is
+// NEVER lost. "ok-no-photo" tells the caller the photo couldn't be kept.
+export type LogResult = "ok" | "ok-no-photo" | "fail";
+export function addLogEntry(entry: LogEntry): LogResult {
   const log = getLog();
   log.push(entry);
-  localStorage.setItem(LOG_KEY, JSON.stringify(log));
+  if (safeSet(LOG_KEY, JSON.stringify(log))) return "ok";
+  if (entry.photoRef) {
+    log[log.length - 1] = { ...entry, photoRef: undefined };
+    if (safeSet(LOG_KEY, JSON.stringify(log))) return "ok-no-photo";
+  }
+  return "fail";
 }
 
 export function completedChallengeIds(): Set<string> {
@@ -43,11 +58,11 @@ export function addSkip(id: string): void {
   const s = getSkips();
   if (!s.includes(id)) {
     s.push(id);
-    localStorage.setItem(SKIP_KEY, JSON.stringify(s));
+    safeSet(SKIP_KEY, JSON.stringify(s));
   }
 }
 export function removeSkip(id: string): void {
-  localStorage.setItem(SKIP_KEY, JSON.stringify(getSkips().filter((x) => x !== id)));
+  safeSet(SKIP_KEY, JSON.stringify(getSkips().filter((x) => x !== id)));
 }
 
 // ---- Preferences: boost/mute per drawer (CURIO.md §4) ----
@@ -58,7 +73,7 @@ export function getBoosts(): Record<string, number> {
   try { return JSON.parse(localStorage.getItem(PREF_KEY) ?? "{}"); } catch { return {}; }
 }
 export function setBoosts(b: Record<string, number>): void {
-  localStorage.setItem(PREF_KEY, JSON.stringify(b));
+  safeSet(PREF_KEY, JSON.stringify(b));
 }
 export function nudgeBoost(skillId: string, delta: number): void {
   const b = getBoosts();
@@ -66,7 +81,7 @@ export function nudgeBoost(skillId: string, delta: number): void {
   setBoosts(b);
 }
 export function isOnboarded(): boolean { return localStorage.getItem(ONBOARD_KEY) === "1"; }
-export function setOnboarded(): void { localStorage.setItem(ONBOARD_KEY, "1"); }
+export function setOnboarded(): void { safeSet(ONBOARD_KEY, "1"); }
 
 // ---- One-tap export/import (CURIO.md §16: never lose your cabinet) ----
 export function exportData(): string {
@@ -111,6 +126,6 @@ export function toggleSaved(id: string): boolean {
   const s = getSaved();
   const i = s.indexOf(id);
   if (i >= 0) s.splice(i, 1); else s.push(id);
-  localStorage.setItem(SAVED_KEY, JSON.stringify(s));
+  safeSet(SAVED_KEY, JSON.stringify(s));
   return i < 0; // true if now saved
 }
