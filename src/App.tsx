@@ -52,6 +52,14 @@ function Icon({ name, size = 18 }: { name: string; size?: number }) {
     x: <path d="M6.5 6.5l11 11M17.5 6.5l-11 11" />,
     expand: <path d="M7 14l5-5 5 5" />,
     check: <path d="M5 12.5l4.5 4.5L19 7" />,
+    layers: <><rect x="3.5" y="4" width="17" height="6.5" rx="1.5" /><rect x="3.5" y="13.5" width="17" height="6.5" rx="1.5" /></>,
+    calendar: <><rect x="4" y="5.5" width="16" height="15" rx="2" /><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4" /></>,
+    star: <path d="M12 4l2.3 4.9 5.4.7-4 3.7 1 5.3-4.7-2.6-4.7 2.6 1-5.3-4-3.7 5.4-.7z" />,
+    download: <path d="M12 4v10m0 0l-4-4m4 4l4-4M5 19h14" />,
+    upload: <path d="M12 20V10m0 0l-4 4m4-4l4 4M5 5h14" />,
+    sliders: <><path d="M4 8h9M17 8h3M4 16h3M11 16h9" /><circle cx="15" cy="8" r="2.1" /><circle cx="9" cy="16" r="2.1" /></>,
+    pencil: <path d="M4 20l1-4L16.5 4.5a2.1 2.1 0 013 3L8 19l-4 1z" />,
+    chevron: <path d="M8 10l4 4 4-4" />,
   };
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor"
@@ -599,9 +607,30 @@ function TuneDeck() {
   );
 }
 
+const NAME_KEY = "curio.name.v1";
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const fmtDay = (d: string) => { const [, m, day] = d.split("-"); return `${MONTHS[Number(m) - 1]?.slice(0, 3)} ${Number(day)}`; };
+const monthKey = (d: string) => { const [y, m] = d.split("-"); return `${MONTHS[Number(m) - 1]} ${y}`; };
+
+function StatTile({ icon, value, label, accent }: { icon: string; value: React.ReactNode; label: string; accent?: string }) {
+  return (
+    <div style={{ flex: 1, minWidth: 0, background: "var(--paper-card)", border: "1px solid var(--line)", borderRadius: 12, padding: "12px 8px", textAlign: "center" }}>
+      <span style={{ color: accent ?? "var(--accent-ink)", display: "flex", justifyContent: "center", marginBottom: 5 }}><Icon name={icon} size={17} /></span>
+      <div style={{ fontFamily: "var(--font-serif)", fontWeight: 600, fontSize: 22, lineHeight: 1, color: "var(--ink)" }}>{value}</div>
+      <div className="t-tag t-soft" style={{ marginTop: 5, fontSize: 9.5, letterSpacing: "0.04em" }}>{label}</div>
+    </div>
+  );
+}
+
 function YouScreen() {
   const log = getLog();
   const [tuneOpen, setTuneOpen] = useState(false);
+  const [advOpen, setAdvOpen] = useState(false);
+  const [name, setName] = useState(() => localStorage.getItem(NAME_KEY) ?? "");
+  const editName = () => {
+    const v = prompt("What should we call you?", name)?.trim();
+    if (v !== undefined) { const n = v.slice(0, 24); setName(n); if (n) localStorage.setItem(NAME_KEY, n); else localStorage.removeItem(NAME_KEY); }
+  };
   const doExport = () => {
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([exportData()], { type: "application/json" }));
@@ -620,57 +649,120 @@ function YouScreen() {
     };
     inp.click();
   };
+
+  const streak = currentStreak();
+  const drawers = skillsTried();
+  const daysActive = new Set(log.map((e) => e.date)).size;
+  const topDrawer = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const e of log) { const s = e.challengeId.split("-")[0]; counts.set(s, (counts.get(s) ?? 0) + 1); }
+    let best = "", n = 0;
+    for (const [k, v] of counts) if (v > n) { best = k; n = v; }
+    return best ? skillById(best)?.name : undefined;
+  }, [log]);
+
   const unlocked = unlockedIds(log);
+  const sortedAch = useMemo(() => [...ACHIEVEMENTS].sort((a, b) => Number(unlocked.has(b.id)) - Number(unlocked.has(a.id))), [unlocked]);
+
+  const summary = log.length === 0
+    ? "Your journey starts with one small thing."
+    : [`${log.length} ${log.length === 1 ? "curio" : "curios"}`, streak > 0 ? `${streak}-day streak` : null, `${drawers.size} ${drawers.size === 1 ? "drawer" : "drawers"}`].filter(Boolean).join(" · ");
+
   return (
     <div className="screen">
-      <div className="t-eyebrow" style={{ margin: "4px 0 10px" }}>Achievements · {unlocked.size}/{ACHIEVEMENTS.length}</div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 18 }}>
-        {ACHIEVEMENTS.map((a) => {
+      {/* ---- identity hero ---- */}
+      <button onClick={editName} style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", padding: 0, margin: "4px 0 2px", textAlign: "left" }}>
+        <span className="t-title" style={{ fontSize: 26 }}>{name || "Curious one"}</span>
+        <span style={{ color: "var(--ink-soft)", display: "flex" }}><Icon name="pencil" size={15} /></span>
+      </button>
+      <div className="t-soft" style={{ fontSize: 13.5, marginBottom: 14 }}>{summary}{topDrawer ? ` · mostly ${topDrawer.toLowerCase()}` : ""}</div>
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
+        <StatTile icon="flame" value={streak} label="DAY STREAK" accent="var(--accent-ink)" />
+        <StatTile icon="star" value={log.length} label="CURIOS" accent="var(--star)" />
+        <StatTile icon="layers" value={`${drawers.size}/${SKILLS.length}`} label="DRAWERS" accent="var(--ochre)" />
+        <StatTile icon="calendar" value={daysActive} label="DAYS" accent="var(--stamp)" />
+      </div>
+
+      {/* ---- your log (the heart of the page) ---- */}
+      <div className="t-eyebrow" style={{ margin: "0 0 12px" }}>Your log</div>
+      {log.length === 0 ? (
+        <div className="card" style={{ padding: "20px 16px", textAlign: "center", marginBottom: 24 }}>
+          <div style={{ fontFamily: "var(--font-serif)", fontWeight: 600, fontSize: 16, marginBottom: 4 }}>No curios yet</div>
+          <p className="t-soft" style={{ fontSize: 13 }}>Do one small thing today and stamp how it felt — it'll show up here, newest first.</p>
+        </div>
+      ) : (
+        <div style={{ marginBottom: 24 }}>
+          {(() => {
+            let lastMonth = "";
+            return [...log].reverse().map((e, i) => {
+              const c = _CHALLENGES.find((x) => x.id === e.challengeId);
+              const mk = monthKey(e.date);
+              const showMonth = mk !== lastMonth; lastMonth = mk;
+              const hue = drawerHue(e.challengeId.split("-")[0]);
+              return (
+                <div key={i}>
+                  {showMonth && <div className="t-tag t-soft" style={{ margin: i === 0 ? "0 0 8px" : "16px 0 8px", textTransform: "uppercase", letterSpacing: "0.06em" }}>{mk}</div>}
+                  <div style={{ display: "flex", gap: 0, background: "var(--paper-card)", border: "1px solid var(--line)", borderLeft: `4px solid ${hue}`, borderRadius: 10, padding: "12px 14px", marginBottom: 8 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" }}>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>{c?.title ?? e.challengeId}</div>
+                        <div style={{ flex: "none", display: "flex", alignItems: "center", gap: 3, color: "var(--star)" }}>
+                          <Icon name="star" size={13} /><span className="t-tag" style={{ color: "var(--ink-soft)" }}>{e.rating}/5</span>
+                        </div>
+                      </div>
+                      <div className="t-tag t-soft" style={{ marginTop: 3 }}>{fmtDay(e.date)}</div>
+                      {e.note && <div className="t-soft" style={{ fontSize: 13, fontStyle: "italic", marginTop: 6 }}>"{e.note}"</div>}
+                      {e.photoRef && <img src={e.photoRef} alt="" style={{ width: "100%", borderRadius: 8, marginTop: 8, border: "1px solid var(--line)" }} />}
+                    </div>
+                  </div>
+                </div>
+              );
+            });
+          })()}
+        </div>
+      )}
+
+      {/* ---- achievements ---- */}
+      <div className="t-eyebrow" style={{ margin: "0 0 12px" }}>Achievements · {unlocked.size} of {ACHIEVEMENTS.length}</div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 26 }}>
+        {sortedAch.map((a) => {
           const got = unlocked.has(a.id);
           return (
-            <div key={a.id} className="card" style={{ padding: "10px 12px", opacity: got ? 1 : 0.5, borderColor: got ? "var(--plum)" : "var(--line-strong)" }}>
+            <div key={a.id} style={{ padding: "11px 13px", borderRadius: 12, background: got ? "color-mix(in srgb, var(--plum) 12%, var(--paper-card))" : "var(--paper-card)", border: got ? "1px solid color-mix(in srgb, var(--plum) 55%, transparent)" : "1px solid var(--line)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                 <span style={{ color: got ? "var(--star)" : "var(--ink-soft)", display: "flex" }}><Icon name={got ? "medal" : "lock"} size={16} /></span>
-                <span style={{ fontWeight: 700, fontSize: 12.5 }}>{a.name}</span>
+                <span style={{ fontWeight: 700, fontSize: 12.5, color: got ? "var(--ink)" : "var(--ink-soft)" }}>{a.name}</span>
               </div>
               <div className="t-soft" style={{ fontSize: 11, marginTop: 3 }}>{a.desc}</div>
             </div>
           );
         })}
       </div>
-      <button className="btn-ghost" style={{ marginBottom: tuneOpen ? 12 : 18, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 14px" }} onClick={() => setTuneOpen((o) => !o)}>
-        <span>Tune my deck</span><span className="t-soft">{tuneOpen ? "▲" : "▼"}</span>
-      </button>
-      {tuneOpen && <TuneDeck />}
-      <div className="t-eyebrow" style={{ margin: "4px 0 12px" }}>Your log</div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-        <button className="btn-ghost" style={{ flex: 1 }} onClick={doExport}>Export cabinet</button>
-        <button className="btn-ghost" style={{ flex: 1 }} onClick={doImport}>Import</button>
-      </div>
-      <button className="btn-ghost" style={{ marginBottom: 14, borderColor: "var(--stamp)", color: "var(--stamp)" }}
-        onClick={() => { if (confirm("Reset everything? Clears your log, cabinet, achievements and onboarding — handy for testing.")) { localStorage.clear(); location.reload(); } }}>
-        Reset app (clear all data)
-      </button>
-      {log.length === 0 ? (
-        <p className="t-soft" style={{ fontSize: 13.5 }}>Nothing yet — your stamped curios will show up here, newest first.</p>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10, paddingBottom: 16 }}>
-          {[...log].reverse().map((e, i) => {
-            const c = _CHALLENGES.find((x) => x.id === e.challengeId);
-            return (
-              <div key={i} className="card" style={{ padding: "13px 15px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600 }}>{c?.title ?? e.challengeId}</div>
-                  <div className="t-tag" style={{ color: "var(--stamp)", flex: "none" }}>{e.rating}/5</div>
-                </div>
-                <div className="t-tag t-soft" style={{ marginTop: 3 }}>{e.date}</div>
-                {e.note && <div className="t-soft" style={{ fontSize: 13, fontStyle: "italic", marginTop: 6 }}>"{e.note}"</div>}
-                {e.photoRef && <img src={e.photoRef} alt="" style={{ width: "100%", borderRadius: 8, marginTop: 8, border: "1px solid var(--line)" }} />}
-              </div>
-            );
-          })}
+
+      {/* ---- settings / plumbing ---- */}
+      <div style={{ borderTop: "1px solid var(--line)", paddingTop: 18 }}>
+        <div className="t-eyebrow" style={{ color: "var(--ink-soft)", margin: "0 0 12px" }}>Settings</div>
+        <button className="btn-ghost" style={{ marginBottom: tuneOpen ? 10 : 10, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 14px" }} onClick={() => setTuneOpen((o) => !o)}>
+          <span style={{ display: "flex", alignItems: "center", gap: 8 }}><Icon name="sliders" size={16} />Tune my deck</span>
+          <span style={{ display: "flex", color: "var(--ink-soft)", transform: tuneOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}><Icon name="chevron" size={16} /></span>
+        </button>
+        {tuneOpen && <TuneDeck />}
+        <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+          <button className="btn-ghost" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }} onClick={doExport}><Icon name="download" size={15} />Export</button>
+          <button className="btn-ghost" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }} onClick={doImport}><Icon name="upload" size={15} />Import</button>
         </div>
-      )}
+        <button className="btn-link" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", padding: "8px 2px" }} onClick={() => setAdvOpen((o) => !o)}>
+          <span>Advanced</span>
+          <span style={{ display: "flex", color: "var(--ink-soft)", transform: advOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}><Icon name="chevron" size={15} /></span>
+        </button>
+        {advOpen && (
+          <button style={{ display: "block", width: "100%", marginTop: 6, fontSize: 12.5, fontWeight: 600, color: "var(--stamp)", background: "none", border: "1px solid color-mix(in srgb, var(--stamp) 45%, transparent)", borderRadius: "var(--r-md)", padding: 11, minHeight: 44 }}
+            onClick={() => { if (confirm("Reset everything? Clears your log, cabinet, achievements and onboarding — this can't be undone.")) { localStorage.clear(); location.reload(); } }}>
+            Reset app (clear all data)
+          </button>
+        )}
+      </div>
     </div>
   );
 }
