@@ -33,8 +33,8 @@ function Tags({ c }: { c: Challenge }) {
 
 function Field({ k, children, italic }: { k: string; children: React.ReactNode; italic?: boolean }) {
   return (
-    <div style={{ marginBottom: 14 }}>
-      <div className="t-label" style={{ marginBottom: 3 }}>{k}</div>
+    <div style={{ marginBottom: 15 }}>
+      <div style={{ fontFamily: "var(--font-sans)", fontWeight: 700, fontSize: 12.5, letterSpacing: "0.01em", color: "var(--accent-ink)", marginBottom: 3 }}>{k}</div>
       <div style={{ fontSize: 14.5, lineHeight: 1.5, color: italic ? "var(--ink-soft)" : "var(--ink)", fontStyle: italic ? "italic" : "normal" }}>{children}</div>
     </div>
   );
