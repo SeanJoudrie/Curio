@@ -83,6 +83,30 @@
 4. Fast-follows: share-card fonts, achievement progress, motif coverage,
    screen-reader pass, cabinet shelf treatment, onboarding taste-picker.
 
+## Round 2 — front page + photos (user screenshot IMG_9172)
+
+Fixed:
+1. **major · blank peek card** — the card behind the deck showed only a title
+   mid-swipe ("amateur"). Now renders the full `DeckCardFace` (shared with the
+   live card) — the stack always looks like a real deck. **fixed**
+2. **major · no photos** — every card + detail now leads with a curated,
+   on-theme, license-free hero photo per drawer (17 bundled JPEGs). Auto-sourced
+   CC images were rejected (garbage quality). `c.image` per-challenge slot sits
+   on top; symbol is the offline/failure fallback. **fixed**
+3. **major · bulky tags** — 4 boxed mono-caps pills → one slim sentence-case
+   meta line ("Under $20 · 15 min · Date"). **fixed**
+4. **major · category chip fonts** — Space Mono read "techy"; switched the
+   filter chips to Inter (modern app-filter look). **fixed**
+5. **major · first sentences** — micro-lesson openers ran 180–224 chars (dense
+   paragraphs). Robust `firstSentence()` (guards decimals/abbrevs) + 3-line
+   clamp so the card shows a tight teaser; full lesson one tap away. **fixed**
+6. **minor · dead code** — removed the now-unused `Tags` component and `skill`
+   var. **fixed**
+
+Re-rated: Deck card face 9→9 (photo), Deck card symbol/image slot → 9 (real
+photos live), Typography/chips 8→9, Info hierarchy 9, "resists feed" 9. No new
+gate violations; deploy green.
+
 ## Gate check
 
 - [x] Zero emoji used as UI icons (⚠/★/☆/✓/◻/📷 all replaced with line icons)
