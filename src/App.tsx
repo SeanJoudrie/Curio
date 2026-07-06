@@ -60,6 +60,7 @@ function Icon({ name, size = 18 }: { name: string; size?: number }) {
     sliders: <><path d="M4 8h9M17 8h3M4 16h3M11 16h9" /><circle cx="15" cy="8" r="2.1" /><circle cx="9" cy="16" r="2.1" /></>,
     pencil: <path d="M4 20l1-4L16.5 4.5a2.1 2.1 0 013 3L8 19l-4 1z" />,
     chevron: <path d="M8 10l4 4 4-4" />,
+    share: <><path d="M12 15V4m0 0l-3.5 3.5M12 4l3.5 3.5" /><path d="M5.5 12.5V19h13v-6.5" /></>,
   };
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor"
@@ -315,9 +316,9 @@ function StampScreen({ challenge, onDone }: { challenge: Challenge; onDone: (r: 
           ))}
         </div>
       )}
-      <label className="btn-link" style={{ display: "block", marginTop: 8 }}>
-        {photo ? "\ud83d\udcf7 Photo attached \u2713" : "\ud83d\udcf7 Attach a photo (optional)"}
-        <input type="file" accept="image/*" capture="environment" style={{ display: "none" }}
+      <label className="btn-link" style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 8, color: photo ? "var(--accent-ink)" : "var(--ink-soft)" }}>
+        <Icon name={photo ? "check" : "camera"} size={15} />{photo ? "Photo attached" : "Attach a photo (optional)"}
+        <input type="file" accept="image/*" style={{ display: "none" }}
           onChange={async (e) => { const f = e.target.files?.[0]; if (f) setPhoto(await compressPhoto(f)); }} />
       </label>
       <input
@@ -357,12 +358,15 @@ function StampScreen({ challenge, onDone }: { challenge: Challenge; onDone: (r: 
 
 function CabinetScreen() {
   const log = getLog();
+  const [lb, setLb] = useState<LogEntry | null>(null);
   const bySkill = new Map<string, number>();
   for (const e of log) {
     const sid = e.challengeId.split("-")[0];
     bySkill.set(sid, (bySkill.get(sid) ?? 0) + 1);
   }
   const tried = bySkill.size;
+  const photos = log.filter((e) => e.photoRef);
+  const lbChallenge = lb ? _CHALLENGES.find((x) => x.id === lb.challengeId) : undefined;
   return (
     <div className="screen">
       <div style={{ textAlign: "center", margin: "10px 0 18px" }}>
@@ -370,6 +374,37 @@ function CabinetScreen() {
         <div className="t-label" style={{ color: "var(--ink-soft)" }}>{tried === 1 ? "skill tried" : "skills tried"} · {log.length} {log.length === 1 ? "curio" : "curios"} logged</div>
         {currentStreak() > 1 && <div style={{ marginTop: 10 }}><span className="streak"><Icon name="flame" size={13} /> {currentStreak()}-day streak</span></div>}
       </div>
+
+      {photos.length > 0 && (
+        <div style={{ marginBottom: 22 }}>
+          <div className="t-eyebrow" style={{ margin: "0 0 10px" }}>Your photos · {photos.length}</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
+            {[...photos].reverse().map((e, i) => (
+              <button key={i} onClick={() => setLb(e)} aria-label="View photo"
+                style={{ padding: 0, border: "1px solid var(--line)", borderRadius: 10, overflow: "hidden", aspectRatio: "1", background: "var(--paper-card)" }}>
+                <img src={e.photoRef} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {lb && (
+        <div onClick={() => setLb(null)} style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(18,13,22,0.86)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 22 }}>
+          <img src={lb.photoRef} alt="" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "100%", maxHeight: "66vh", borderRadius: 14, boxShadow: "0 12px 44px rgba(0,0,0,0.55)" }} />
+          <div onClick={(e) => e.stopPropagation()} style={{ marginTop: 16, textAlign: "center", color: "#FBEFDD", maxWidth: 360 }}>
+            <div style={{ fontFamily: "var(--font-serif)", fontWeight: 600, fontSize: 17 }}>{lbChallenge?.title ?? lb.challengeId}</div>
+            <div className="t-tag" style={{ opacity: 0.72, marginTop: 3 }}>{fmtDay(lb.date)} · {lb.rating}/5</div>
+            {lb.note && <div style={{ fontSize: 13, fontStyle: "italic", opacity: 0.85, marginTop: 8 }}>"{lb.note}"</div>}
+            <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 18 }}>
+              <button className="btn-ghost" style={{ width: "auto", padding: "11px 20px", display: "flex", alignItems: "center", gap: 7, color: "#FBEFDD", borderColor: "rgba(251,239,221,0.45)" }}
+                onClick={() => { if (lbChallenge) shareCard(lbChallenge, lb.rating, lb.note, lb.photoRef); }}><Icon name="share" size={15} />Share</button>
+              <button className="btn-ghost" style={{ width: "auto", padding: "11px 20px", color: "#FBEFDD", borderColor: "rgba(251,239,221,0.45)" }} onClick={() => setLb(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {tried === 0 ? (
         <div className="card" style={{ textAlign: "center", padding: 32 }}>
           <div className="t-title" style={{ marginBottom: 8 }}>Your first specimen goes here.</div>
