@@ -62,6 +62,26 @@ function ChallengeCard({ c, hero, onOpen }: { c: Challenge; hero?: boolean; onOp
 
 const buzzq = (ms: number) => navigator.vibrate?.(ms);
 
+// Line icons (consistent stroke, replacing emoji in chrome — CURIO.md §18)
+function Icon({ name, size = 18 }: { name: string; size?: number }) {
+  const paths: Record<string, React.ReactNode> = {
+    bolt: <path d="M13 3L6 13h5l-1 8 8-11h-5l1-7z" />,
+    flame: <path d="M12 3c3 3 4.5 5 4.5 8a4.5 4.5 0 01-9 0c0-1.6.8-2.8.8-2.8s.4 1.6 1.7 1.6c1.2 0 1-1.5 1-3 0-2 1-3.8 1-3.8z" />,
+    medal: <><circle cx="12" cy="15" r="4.5" /><path d="M9 10L7 3M15 10l2-7" /></>,
+    lock: <><rect x="5.5" y="11" width="13" height="8.5" rx="2" /><path d="M8.5 11V8a3.5 3.5 0 017 0v3" /></>,
+    camera: <><path d="M4 8.5h3l1.6-2h6.8L20 8.5h0V19H4z" /><circle cx="12" cy="13" r="3.2" /></>,
+    x: <path d="M6.5 6.5l11 11M17.5 6.5l-11 11" />,
+    expand: <path d="M7 14l5-5 5 5" />,
+    check: <path d="M5 12.5l4.5 4.5L19 7" />,
+  };
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor"
+      strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flex: "none" }}>
+      {paths[name]}
+    </svg>
+  );
+}
+
 function SwipeDeck({ list, onExpand, onEmpty }: { list: Challenge[]; onExpand: (c: Challenge) => void; onEmpty: React.ReactNode }) {
   const [i, setI] = useState(0);
   const [dx, setDx] = useState(0);
@@ -122,7 +142,7 @@ function SwipeDeck({ list, onExpand, onEmpty }: { list: Challenge[]; onExpand: (
           <div className="swipe-badge save" style={{ opacity: Math.max(0, Math.min(1, dx / 70)) }}>save ★</div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
             <div className="t-eyebrow">{skill?.name} · {LEVEL_LABEL[c.level]}</div>
-            <button onClick={(e) => { e.stopPropagation(); star(); }} style={{ fontSize: 22, lineHeight: 1, color: saved ? "var(--gold)" : "var(--ink-soft)", flex: "none" }} aria-label="Save">{saved ? "★" : "☆"}</button>
+            <button onClick={(e) => { e.stopPropagation(); star(); }} style={{ fontSize: 22, lineHeight: 1, color: saved ? "var(--star)" : "var(--ink-soft)", flex: "none" }} aria-label="Save">{saved ? "★" : "☆"}</button>
           </div>
           <h2 className="t-display" style={{ fontSize: 30, margin: "10px 0 4px" }}>{c.title}</h2>
           <div style={{ margin: "6px auto 10px" }}><Sketch id={c.id} skillId={c.skillId} size={72} /></div>
@@ -132,9 +152,9 @@ function SwipeDeck({ list, onExpand, onEmpty }: { list: Challenge[]; onExpand: (
         </div>
       </div>
       <div className="deck-actions">
-        <button className="skip" onClick={() => fling(-1)} aria-label="Skip">✕</button>
-        <button className="go big" onClick={() => onExpand(c)} aria-label="Open">↑</button>
-        <button className="save" onClick={star} aria-label="Save">{isSaved(c.id) ? "★" : "☆"}</button>
+        <button className="skip" onClick={() => fling(-1)} aria-label="Skip"><Icon name="x" size={24} /></button>
+        <button className="go big" onClick={() => onExpand(c)} aria-label="Open"><Icon name="expand" size={26} /></button>
+        <button className="save" onClick={star} aria-label="Save" style={{ fontSize: 24 }}>{isSaved(c.id) ? "★" : "☆"}</button>
       </div>
     </>
   );
@@ -221,7 +241,7 @@ function TodayScreen({ view, setView }: { view: View; setView: (v: View) => void
           <div style={{ margin: "6px auto", display: "flex", flexDirection: "column", gap: 6 }}>
             {view.newUnlocks.map((a) => (
               <div key={a.id} className="card" style={{ padding: "9px 14px", display: "flex", alignItems: "center", gap: 10, borderColor: "var(--plum)" }}>
-                <span style={{ fontSize: 18 }}>🏅</span>
+                <span style={{ color: "var(--star)", display: "flex" }}><Icon name="medal" size={20} /></span>
                 <span style={{ textAlign: "left" }}><div style={{ fontWeight: 700, fontSize: 13 }}>Achievement · {a.name}</div><div className="t-soft" style={{ fontSize: 11.5 }}>{a.desc}</div></span>
               </div>
             ))}
@@ -261,7 +281,7 @@ function TodayScreen({ view, setView }: { view: View; setView: (v: View) => void
           <div className="t-tag t-soft" style={{ marginTop: 1 }}>{greeting}{tried > 0 ? ` · ${tried} tried` : ""}</div>
         </div>
         {rightNow && (
-          <button className="rn-pill" onClick={() => setView({ kind: "detail", challenge: rightNow })}>⚡ 2-min now</button>
+          <button className="rn-pill" onClick={() => setView({ kind: "detail", challenge: rightNow })}><Icon name="bolt" size={13} /> 2-min now</button>
         )}
       </div>
       <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 12, marginBottom: 2, flex: "none" }}>
@@ -379,7 +399,7 @@ function CabinetScreen() {
       <div style={{ textAlign: "center", margin: "10px 0 18px" }}>
         <div className="t-display" style={{ fontSize: 44, color: "var(--teal)" }}>{tried}</div>
         <div className="t-label" style={{ color: "var(--ink-soft)" }}>{tried === 1 ? "skill tried" : "skills tried"} · {log.length} {log.length === 1 ? "curio" : "curios"} logged</div>
-        {currentStreak() > 1 && <div style={{ marginTop: 10 }}><span className="streak">🔥 {currentStreak()}-day rhythm</span></div>}
+        {currentStreak() > 1 && <div style={{ marginTop: 10 }}><span className="streak"><Icon name="flame" size={13} /> {currentStreak()}-day streak</span></div>}
       </div>
       {tried === 0 ? (
         <div className="card" style={{ textAlign: "center", padding: 32 }}>
@@ -416,10 +436,10 @@ type CatFilter = "all" | "date" | "free" | "splurge" | "quick" | "todo";
 const CAT_FILTERS: { id: CatFilter; label: string }[] = [
   { id: "all", label: "All" },
   { id: "todo", label: "Not done" },
-  { id: "date", label: "💞 Date" },
-  { id: "quick", label: "⏱ Quick" },
+  { id: "date", label: "Date" },
+  { id: "quick", label: "Quick" },
   { id: "free", label: "Free" },
-  { id: "splurge", label: "✨ Splurge" },
+  { id: "splurge", label: "Splurge" },
 ];
 
 function CatalogScreen({ openDetail }: { openDetail: (c: Challenge) => void }) {
@@ -463,7 +483,7 @@ function CatalogScreen({ openDetail }: { openDetail: (c: Challenge) => void }) {
             <div style={{ flex: "none", opacity: done.has(c.id) ? 0.5 : 1 }}><Sketch id={c.id} skillId={c.skillId} size={40} /></div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13.5, fontWeight: 600, color: done.has(c.id) ? "var(--ink-soft)" : "var(--ink)" }}>{done.has(c.id) ? "✓ " : ""}{c.title}</div>
-              <div className="t-tag t-soft" style={{ marginTop: 2 }}>{skillById(c.skillId)?.name} · {TIME_LABEL[c.budget.time]} · {COST_LABEL[c.budget.cost]}{c.together ? " · 💞" : ""}</div>
+              <div className="t-tag t-soft" style={{ marginTop: 2 }}>{skillById(c.skillId)?.name} · {TIME_LABEL[c.budget.time]} · {COST_LABEL[c.budget.cost]}{c.together ? " · Date" : ""}</div>
             </div>
           </button>
         ))}
@@ -596,7 +616,7 @@ function YouScreen() {
           return (
             <div key={a.id} className="card" style={{ padding: "10px 12px", opacity: got ? 1 : 0.5, borderColor: got ? "var(--plum)" : "var(--line-strong)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                <span style={{ fontSize: 15, filter: got ? "none" : "grayscale(1)" }}>{got ? "🏅" : "🔒"}</span>
+                <span style={{ color: got ? "var(--star)" : "var(--ink-soft)", display: "flex" }}><Icon name={got ? "medal" : "lock"} size={16} /></span>
                 <span style={{ fontWeight: 700, fontSize: 12.5 }}>{a.name}</span>
               </div>
               <div className="t-soft" style={{ fontSize: 11, marginTop: 3 }}>{a.desc}</div>
@@ -605,7 +625,7 @@ function YouScreen() {
         })}
       </div>
       <button className="btn-ghost" style={{ marginBottom: tuneOpen ? 12 : 18, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 14px" }} onClick={() => setTuneOpen((o) => !o)}>
-        <span>🎛️ Tune my deck</span><span className="t-soft">{tuneOpen ? "▲" : "▼"}</span>
+        <span>Tune my deck</span><span className="t-soft">{tuneOpen ? "▲" : "▼"}</span>
       </button>
       {tuneOpen && <TuneDeck />}
       <div className="t-eyebrow" style={{ margin: "4px 0 12px" }}>Your log</div>
@@ -615,7 +635,7 @@ function YouScreen() {
       </div>
       <button className="btn-ghost" style={{ marginBottom: 14, borderColor: "var(--stamp)", color: "var(--stamp)" }}
         onClick={() => { if (confirm("Reset everything? Clears your log, cabinet, achievements and onboarding — handy for testing.")) { localStorage.clear(); location.reload(); } }}>
-        🧪 Reset app (clear all data)
+        Reset app (clear all data)
       </button>
       {log.length === 0 ? (
         <p className="t-soft" style={{ fontSize: 13.5 }}>Nothing yet — your stamped curios will show up here, newest first.</p>

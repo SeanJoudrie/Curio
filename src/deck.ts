@@ -13,11 +13,11 @@ function hash(s: string): number {
 export type Mood = "any" | "free" | "cheap" | "splurge" | "date" | "quick";
 export const MOODS: { id: Mood; label: string }[] = [
   { id: "any", label: "All" },
-  { id: "free", label: "🆓 Free" },
-  { id: "cheap", label: "💵 Under $20" },
-  { id: "splurge", label: "✨ Splurge" },
-  { id: "date", label: "💞 Date" },
-  { id: "quick", label: "⏱ Quick" },
+  { id: "free", label: "Free" },
+  { id: "cheap", label: "Under $20" },
+  { id: "splurge", label: "Splurge" },
+  { id: "date", label: "Date" },
+  { id: "quick", label: "Quick" },
 ];
 
 function fitsMood(c: Challenge, m: Mood): boolean {
