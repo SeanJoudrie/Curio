@@ -50,6 +50,32 @@ export function drawerPhoto(skillId: string): string | undefined {
   return HAS_PHOTO.has(skillId) ? `${import.meta.env.BASE_URL}img/drawers/${skillId}.jpg` : undefined;
 }
 
+// Topical photos matched on the challenge title — more specific than the drawer
+// hero (a cake card shows cake, a chess card shows chess). First match wins.
+const PHOTO_MATCH: [string, RegExp][] = [
+  ["pancake", /pancake/],
+  ["pizza", /pizza/],
+  ["pasta", /pasta|noodle|ramen/],
+  ["sushi", /sushi|onigiri/],
+  ["bread", /bread|sourdough|\bbake a|dough|bagel|\bloaf|focaccia/],
+  ["cocktail", /cocktail|mixolog|negroni|margarita/],
+  ["coffee", /coffee|cold brew|espresso|barista|latte/],
+  ["tea", /\btea\b|matcha|kombucha/],
+  ["knife", /knife|dice an onion|\bchop\b|segment a|supreme|cutting board|cheese board|charcuterie/],
+  ["painting", /paint|watercolor|\bdraw|sketch|collage|comic|chalk|blackout|contour|pixel art|manga|cartoon|doodle/],
+  ["guitar", /guitar|ukulele|\bchord|strum/],
+  ["drum", /drum|beatbox|percussion|rhythm/],
+  ["yoga", /yoga|tai chi|\bstretch|pilates|box breathing|meditat|mindful/],
+  ["flower", /flower|bouquet|floristry|bloom|petal|press a/],
+  ["boardgame", /board game|\bdice\b|game night|tabletop|two-player card/],
+  ["running", /\brun\b|sprint|\bjog|couch to|5k|wall sit/],
+];
+export function themePhoto(title: string): string | undefined {
+  const t = title.toLowerCase();
+  for (const [key, re] of PHOTO_MATCH) if (re.test(t)) return `${import.meta.env.BASE_URL}img/themes/${key}.jpg`;
+  return undefined;
+}
+
 // Per-challenge line motifs — more specific than the drawer default. viewBox 0 0 100 100.
 const THEME: Record<string, string> = {
   cake: "M28 72h44 M31 72V52h38v20 M31 60h38 M31 52c0-6 8-9 19-9s19 3 19 9 M50 43v-8 M46 35h8",

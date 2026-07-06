@@ -4,7 +4,7 @@ import { skillById, SKILLS, CHALLENGES } from "./data/challenges";
 import { rightNowCurio, swipeDeck, MOODS, type Mood } from "./deck";
 import { addLogEntry, addSkip, removeSkip, getLog, skillsTried, todayStr, nudgeBoost, isOnboarded, setOnboarded, setBoosts, getBoosts, exportData, importData, currentStreak, toggleSaved, isSaved } from "./storage";
 import { shareCard } from "./share";
-import { Sketch, drawerHue, drawerPhoto } from "./Sketch";
+import { Sketch, drawerHue, drawerPhoto, themePhoto } from "./Sketch";
 import { ACHIEVEMENTS, unlockedIds, popNewUnlocks, type Achievement } from "./achievements";
 
 type Tab = "today" | "cabinet" | "catalog" | "you";
@@ -42,7 +42,7 @@ function CardMeta({ c }: { c: Challenge }) {
 // else the line-motif symbol (robust to a failed/offline image load).
 function CardImage({ c, size }: { c: Challenge; size: number }) {
   const [err, setErr] = useState(false);
-  const src = c.image ?? drawerPhoto(c.skillId);
+  const src = c.image ?? themePhoto(c.title) ?? drawerPhoto(c.skillId);
   if (src && !err) {
     return <img src={src} alt="" draggable={false} onError={() => setErr(true)}
       style={{ width: "100%", aspectRatio: "16 / 9", objectFit: "cover", borderRadius: 14, border: "1px solid var(--line)", marginBottom: 14 }} />;
