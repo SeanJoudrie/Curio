@@ -19,15 +19,33 @@ const COST_LABEL: Record<string, string> = { free: "FREE", cheap: "CHEAP", splur
 const LEVEL_LABEL: Record<string, string> = { dabble: "Dabble", digin: "Dig In", deep: "Deep" };
 const RATING_LABEL = ["", "Not for me", "Meh", "Alright", "Enjoyed it", "Loved it"];
 
-function Tags({ c }: { c: Challenge }) {
+// Card-face labels — sentence case, no boxes (the deck card wants air, not chrome).
+const COST_CARD: Record<string, string> = { free: "Free", cheap: "Under $20", splurge: "Splurge" };
+const TIME_CARD: Record<string, string> = { "2m": "2 min", "15m": "15 min", "1h": "1 hr", "half-day": "Half-day", "multi-day": "Multi-day" };
+
+// First sentence of the micro-lesson, guarding decimals ("0.18 s") and mid-word dots.
+function firstSentence(s: string): string {
+  const m = s.match(/[.!?](?=\s+["'(]?[A-Z])/);
+  return (m && m.index !== undefined ? s.slice(0, m.index + 1) : s).trim();
+}
+
+function CardMeta({ c }: { c: Challenge }) {
+  const parts = [COST_CARD[c.budget.cost], TIME_CARD[c.budget.time], c.together ? "Date" : null, c.funnyResultsExpected ? "Results vary" : null].filter(Boolean) as string[];
   return (
-    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-      <span className="tag">{COST_LABEL[c.budget.cost]}</span>
-      <span className="tag">{TIME_LABEL[c.budget.time]}</span>
-      {c.together && <span className="tag" style={{ color: "var(--plum)", borderColor: "var(--plum)" }}>DATE-FRIENDLY</span>}
-      {c.funnyResultsExpected && <span className="tag">RESULTS VARY</span>}
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center", fontFamily: "var(--font-sans)", fontSize: 12, color: "var(--ink-soft)", fontWeight: 500 }}>
+      {parts.map((p, i) => <span key={i}>{i > 0 && <span style={{ opacity: 0.45, marginRight: 8 }}>·</span>}{p}</span>)}
     </div>
   );
+}
+
+// The card's face: a real photo when the challenge has one, its line-motif symbol otherwise.
+function CardImage({ c, size }: { c: Challenge; size: number }) {
+  const [err, setErr] = useState(false);
+  if (c.image && !err) {
+    return <img src={c.image} alt="" draggable={false} onError={() => setErr(true)}
+      style={{ width: "100%", aspectRatio: "16 / 9", objectFit: "cover", borderRadius: 14, border: "1px solid var(--line)", marginBottom: 14 }} />;
+  }
+  return <div style={{ margin: "0 auto 14px" }}><Sketch id={c.id} skillId={c.skillId} title={c.title} size={size} /></div>;
 }
 
 function Field({ k, children, italic }: { k: string; children: React.ReactNode; italic?: boolean }) {
@@ -73,6 +91,32 @@ function Icon({ name, size = 18 }: { name: string; size?: number }) {
   );
 }
 
+// One card's content — shared by the live card and the peek behind it, so the
+// stack always looks like a real deck (no half-empty card mid-swipe).
+function DeckCardFace({ c, saved, dx, onStar }: { c: Challenge; saved: boolean; dx: number; onStar?: () => void }) {
+  const skill = skillById(c.skillId);
+  return (
+    <>
+      <div className="swipe-badge nope" style={{ opacity: Math.max(0, Math.min(1, -dx / 70)) }}>skip</div>
+      <div className="swipe-badge save" style={{ opacity: Math.max(0, Math.min(1, dx / 70)) }}>save</div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+        <div className="t-eyebrow">{skill?.name} · {LEVEL_LABEL[c.level]}</div>
+        <button onClick={onStar ? (e) => { e.stopPropagation(); onStar(); } : undefined} tabIndex={onStar ? 0 : -1}
+          style={{ lineHeight: 1, color: saved ? "var(--star)" : "var(--ink-soft)", flex: "none", padding: 2 }} aria-label={saved ? "Unsave" : "Save"}>
+          <Icon name={saved ? "starFill" : "star"} size={22} />
+        </button>
+      </div>
+      <div style={{ margin: "auto 0", display: "flex", flexDirection: "column" }}>
+        <CardImage c={c} size={116} />
+        <h2 className="t-display" style={{ fontSize: 30, margin: "0 0 8px" }}>{c.title}</h2>
+        <p className="t-soft" style={{ fontSize: 14, lineHeight: 1.5, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{firstSentence(c.microLesson)}</p>
+      </div>
+      <CardMeta c={c} />
+      <div className="t-tag t-soft" style={{ textAlign: "center", marginTop: 14, opacity: 0.6 }}>← skip · tap to open · save →</div>
+    </>
+  );
+}
+
 function SwipeDeck({ list, onExpand, onEmpty }: { list: Challenge[]; onExpand: (c: Challenge) => void; onEmpty: React.ReactNode }) {
   const [i, setI] = useState(0);
   const [dx, setDx] = useState(0);
@@ -114,15 +158,13 @@ function SwipeDeck({ list, onExpand, onEmpty }: { list: Challenge[]; onExpand: (
   const rot = tx / 22;
   void savedTick; // state exists only to force a re-render on star toggle
   const saved = isSaved(c.id);
-  const skill = skillById(c.skillId);
 
   return (
     <>
       <div className="deck-stack">
         {next && (
           <div className="swipe-card peek">
-            <div className="t-eyebrow">{skillById(next.skillId)?.name}</div>
-            <div className="t-title" style={{ fontSize: 24, marginTop: 8 }}>{next.title}</div>
+            <DeckCardFace c={next} saved={isSaved(next.id)} dx={0} />
           </div>
         )}
         <div
@@ -130,26 +172,7 @@ function SwipeDeck({ list, onExpand, onEmpty }: { list: Challenge[]; onExpand: (
           style={{ transform: `translateX(${tx}px) rotate(${rot}deg)`, transition: drag.current ? "none" : "transform 0.22s ease" }}
           onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
         >
-          <div className="swipe-badge nope" style={{ opacity: Math.max(0, Math.min(1, -dx / 70)) }}>skip</div>
-          <div className="swipe-badge save" style={{ opacity: Math.max(0, Math.min(1, dx / 70)) }}>save</div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
-            <div className="t-eyebrow">{skill?.name} · {LEVEL_LABEL[c.level]}</div>
-            <button onClick={(e) => { e.stopPropagation(); star(); }} style={{ lineHeight: 1, color: saved ? "var(--star)" : "var(--ink-soft)", flex: "none", padding: 2 }} aria-label={saved ? "Unsave" : "Save"}>
-              <Icon name={saved ? "starFill" : "star"} size={22} />
-            </button>
-          </div>
-          {/* the card's face: photo when the challenge has one, its line-motif symbol otherwise */}
-          <div style={{ margin: "auto 0", display: "flex", flexDirection: "column" }}>
-            {c.image ? (
-              <img src={c.image} alt="" draggable={false} style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", borderRadius: 14, border: "1px solid var(--line)", marginBottom: 14 }} />
-            ) : (
-              <div style={{ margin: "0 auto 14px" }}><Sketch id={c.id} skillId={c.skillId} title={c.title} size={116} /></div>
-            )}
-            <h2 className="t-display" style={{ fontSize: 30, margin: "0 0 8px" }}>{c.title}</h2>
-            <p className="t-soft" style={{ fontSize: 14, lineHeight: 1.5 }}>{c.microLesson.split(". ")[0]}.</p>
-          </div>
-          <Tags c={c} />
-          <div className="t-tag t-soft" style={{ textAlign: "center", marginTop: 12, opacity: 0.7 }}>← skip · tap to open · save →</div>
+          <DeckCardFace c={c} saved={saved} dx={dx} onStar={star} />
         </div>
       </div>
       <div className="deck-actions">
