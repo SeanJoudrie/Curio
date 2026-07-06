@@ -4,6 +4,7 @@
 > **One line:** A daily cabinet of curiosities. Swipe less, do more — one small real-world skill challenge a day, rated by how it felt, collected in a cabinet that only grows.
 > **Status:** Spec complete, pre-build. This document is the single source of truth. It is self-contained: everything needed to build Curio from scratch is here.
 > **North-Star metric:** challenges **completed & stamped per user per week** — never time-in-app, never DAU.
+> **Mission (why we exist):** Replace the boredom doomscroll. The moment you'd reach for the feed, Curio hands you one small real-world thing to actually *go do* — try something, live a little, be human. Scroll less; a year later you have a pile of real memories instead of a blur of scrolling. **We win when someone closes the app and goes and does the thing** — never when they stay. Every feature is judged against this: does it get people off the phone and into their life, or does it risk becoming the very feed we're replacing? (This is why the app itself resists infinite browsing — one confident pick, not a stream — and why the Cabinet/photos exist: to *look back* on what you did, not to scroll.)
 
 This file reconciles the full design history: the original concept, two rigorous product-audit rounds, and a UI design analysis. The companion HTML docs in `/docs/` are the visual/illustrated versions of everything below; **this markdown is authoritative and complete on its own.**
 
