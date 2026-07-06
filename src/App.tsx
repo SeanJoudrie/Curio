@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Challenge, LogEntry } from "./types";
 import { skillById, SKILLS, CHALLENGES } from "./data/challenges";
-import { rightNowCurio, swipeDeck, MOODS, type Mood } from "./deck";
-import { addLogEntry, addSkip, removeSkip, getLog, skillsTried, todayStr, nudgeBoost, isOnboarded, setOnboarded, setBoosts, getBoosts, exportData, importData, currentStreak, toggleSaved, isSaved } from "./storage";
+import { rightNowCurio, swipeDeck, dailyFeatured, MOODS, type Mood } from "./deck";
+import { addLogEntry, addSkip, removeSkip, getLog, skillsTried, todayStr, nudgeBoost, isOnboarded, setOnboarded, setBoosts, getBoosts, exportData, importData, currentStreak, toggleSaved, isSaved, chestOpenedToday, openChestToday } from "./storage";
 import { shareCard } from "./share";
 import { Sketch, drawerHue, drawerPhoto, themePhoto } from "./Sketch";
 import { ACHIEVEMENTS, unlockedIds, popNewUnlocks, type Achievement } from "./achievements";
@@ -224,12 +224,38 @@ function SwipeDeck({ list, onExpand, onEmpty }: { list: Challenge[]; onExpand: (
   );
 }
 
+// The daily treasure chest — same whimsical sticker language, with a gold lock.
+function Chest({ size = 140 }: { size?: number }) {
+  const hue = "var(--teal)";
+  return (
+    <svg viewBox="0 0 100 100" width={size} height={size} aria-hidden="true" style={{ display: "block" }}>
+      <rect x="6" y="6" width="88" height="88" rx="24" fill="var(--teal)" fillOpacity="0.12" />
+      {/* body + lid */}
+      <path d="M22 52h56v24a4 4 0 01-4 4H26a4 4 0 01-4-4z" fill="var(--teal)" fillOpacity="0.18" stroke={hue} strokeWidth="3.4" strokeLinejoin="round" />
+      <path d="M22 52c0-12 12-20 28-20s28 8 28 20z" fill="var(--paper-card)" stroke={hue} strokeWidth="3.4" strokeLinejoin="round" />
+      <g fill="none" stroke={hue} strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M22 52h56" />
+        <path d="M34 34v18 M66 34v18" />
+      </g>
+      {/* gold lock */}
+      <rect x="43" y="48" width="14" height="15" rx="2.5" fill="var(--gold)" stroke="#9E6813" strokeWidth="2" />
+      <circle cx="50" cy="53" r="2" fill="#7A5410" />
+      <path d="M50 55v4" stroke="#7A5410" strokeWidth="2.4" strokeLinecap="round" />
+      {/* sparkle */}
+      <path d="M78 26l1.5 4 4 1.5-4 1.5-1.5 4-1.5-4-4-1.5 4-1.5z" fill="var(--gold)" />
+    </svg>
+  );
+}
+
 function TodayScreen({ view, setView }: { view: View; setView: (v: View) => void }) {
   const [mood, setMood] = useState<Mood>("any");
+  const [browse, setBrowse] = useState(false);
+  const [chestOpen, setChestOpen] = useState(() => chestOpenedToday());
   const rightNow = useMemo(() => rightNowCurio(), []);
-  // Deck memoized per mood — MUST be declared with the other hooks (before any
-  // conditional return) to satisfy the Rules of Hooks.
+  // Deck + daily pick memoized — MUST be declared with the other hooks (before
+  // any conditional return) to satisfy the Rules of Hooks.
   const deck = useMemo(() => swipeDeck(mood), [mood]);
+  const daily = useMemo(() => dailyFeatured(), []);
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning." : hour < 18 ? "Good afternoon." : "Good evening.";
   const tried = skillsTried().size;
@@ -316,14 +342,50 @@ function TodayScreen({ view, setView }: { view: View; setView: (v: View) => void
     );
   }
 
-  // home — a swipe deck (memoized above so skipping doesn't reshuffle the list
-  // under the index, and the hand stays finite — a decision, not a scroll).
+  // ---- Daily ritual: a treasure chest that opens to today's featured pick ----
+  if (!browse) {
+    // Closed chest — the daily gate.
+    if (!chestOpen) {
+      return (
+        <div className="screen" style={{ justifyContent: "center", alignItems: "center", textAlign: "center", gap: 4 }}>
+          <div className="t-eyebrow" style={{ color: "var(--star)" }}>◦ Your daily curio ◦</div>
+          <button className="chest-btn" aria-label="Open today's challenge"
+            onClick={() => { openChestToday(); setChestOpen(true); buzz(30); }}>
+            <div className="chest-bob"><Chest size={168} /></div>
+          </button>
+          <div className="t-title" style={{ fontSize: 22, marginTop: 4 }}>Today's challenge awaits</div>
+          <p className="t-soft" style={{ fontSize: 13.5, maxWidth: "30ch" }}>Tap the chest to reveal the one thing to go do today.</p>
+          <div className="t-tag t-soft" style={{ marginTop: 6 }}>{greeting}{tried > 0 ? ` · ${tried} in your cabinet` : ""}</div>
+        </div>
+      );
+    }
+    // Opened — the gold daily card.
+    const skill = skillById(daily.skillId);
+    return (
+      <div className="screen" style={{ justifyContent: "center", gap: 4 }}>
+        <div className="t-eyebrow" style={{ color: "var(--star)", textAlign: "center", marginBottom: 10 }}>◦ Today's challenge ◦</div>
+        <div className="daily-card daily-reveal" onClick={() => setView({ kind: "detail", challenge: daily })} role="button" tabIndex={0}>
+          <CardImage c={daily} size={116} />
+          <div className="t-eyebrow">{skill?.name} · {LEVEL_LABEL[daily.level]}</div>
+          <h2 className="t-display card-title" style={{ fontSize: 27, margin: "6px 0 8px" }}>{daily.title}</h2>
+          <p className="t-soft card-lesson" style={{ fontSize: 14, lineHeight: 1.5 }}>{firstSentence(daily.microLesson)}</p>
+          <div style={{ marginTop: 12 }}><CardMeta c={daily} /></div>
+        </div>
+        <div style={{ padding: "16px 0 4px" }}>
+          <button className="btn-primary" onClick={() => setView({ kind: "detail", challenge: daily })}>Open this challenge →</button>
+          <button className="btn-link" style={{ width: "100%", marginTop: 2 }} onClick={() => setBrowse(true)}>Not feeling it? Browse more</button>
+        </div>
+      </div>
+    );
+  }
+
+  // ---- Browse mode: the full swipe deck (secondary to the daily) ----
   return (
     <div className="screen">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
         <div>
-          <div className="t-title" style={{ fontSize: 22 }}>Today's deck</div>
-          <div className="t-tag t-soft" style={{ marginTop: 1 }}>{greeting}{tried > 0 ? ` · ${tried} tried` : ""}</div>
+          <button className="btn-link" style={{ padding: 0, minHeight: 0, color: "var(--accent-ink)", fontWeight: 700, marginBottom: 2 }} onClick={() => setBrowse(false)}>‹ Today's challenge</button>
+          <div className="t-title" style={{ fontSize: 22 }}>Browse the deck</div>
         </div>
         {rightNow && (
           <button className="rn-pill" onClick={() => setView({ kind: "detail", challenge: rightNow })}><Icon name="bolt" size={13} /> 2-min now</button>

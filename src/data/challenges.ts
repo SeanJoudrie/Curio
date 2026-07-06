@@ -3,7 +3,9 @@ import { MORE } from "./moreChallenges";
 import { MORE2 } from "./moreChallenges2";
 import { MORE3 } from "./moreChallenges3";
 import { MORE4 } from "./moreChallenges4";
+import { MORE5 } from "./moreChallenges5";
 import { ARCHIVED } from "./archived";
+import { EXTRA_FEATURED } from "./featured";
 
 // Every challenge is a ONE-DAY activity — solo, or great as a date. Budgets run
 // free → cheap → splurge (the "if you've got money" tier: classes, kits, tastings).
@@ -530,11 +532,16 @@ CHALLENGES.push(...MORE);
 CHALLENGES.push(...MORE2);
 CHALLENGES.push(...MORE3);
 CHALLENGES.push(...MORE4);
+CHALLENGES.push(...MORE5);
 
 // Archive: drop retired / duplicate / mild-risk challenges from the live pool.
 // They stay defined in source (see archived.ts) but never reach deck or Catalog.
 for (let i = CHALLENGES.length - 1; i >= 0; i--) {
   if (ARCHIVED.has(CHALLENGES[i].id)) CHALLENGES.splice(i, 1);
 }
+
+// Promote curated existing favorites into the featured (daily) pool. MORE5
+// carries featured:true inline; these are the best of the rest.
+for (const c of CHALLENGES) if (EXTRA_FEATURED.has(c.id)) c.featured = true;
 
 export const skillById = (id: string): Skill | undefined => SKILLS.find((s) => s.id === id);

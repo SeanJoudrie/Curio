@@ -120,6 +120,16 @@ function weightedPick(p: Challenge[], seed: number): Challenge {
   return weighted[seed % weighted.length];
 }
 
+// The treasure-chest daily pick: one deterministic favorite per day, drawn from
+// the featured pool (adventurous + curated best), skipping ones already done.
+export function dailyFeatured(): Challenge {
+  const done = completedChallengeIds();
+  const featured = CHALLENGES.filter((c) => c.featured && c.budget.time !== "2m");
+  const fresh = featured.filter((c) => !done.has(c.id));
+  const pool = fresh.length > 0 ? fresh : featured.length > 0 ? featured : CHALLENGES;
+  return pool[hash(todayStr() + ":daily") % pool.length];
+}
+
 export function todaysCurio(rerolls = 0, mood: Mood = "any"): Challenge {
   // Today's main event is a real-world challenge, not a 2-minute filler.
   const p = pool(mood).filter((c) => c.budget.time !== "2m");

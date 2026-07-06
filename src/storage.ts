@@ -116,6 +116,11 @@ export function currentStreak(): number {
   return streak;
 }
 
+// ---- Daily treasure chest: opened once per day, re-locks tomorrow ----
+const CHEST_KEY = "curio.chest.v1";
+export function chestOpenedToday(): boolean { return localStorage.getItem(CHEST_KEY) === todayStr(); }
+export function openChestToday(): void { safeSet(CHEST_KEY, todayStr()); }
+
 // ---- Saved / starred challenges (swipe right or tap the star) ----
 const SAVED_KEY = "curio.saved.v1";
 export function getSaved(): string[] {

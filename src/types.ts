@@ -30,6 +30,7 @@ export interface Challenge {
   budget: { time: TimeBudget; cost: CostBudget; setting: Setting };
   together?: boolean; // great as a date / two-person activity
   funnyResultsExpected?: boolean;
+  featured?: boolean; // a "daily favorite" — story-worthy, more adventurous; the treasure-chest daily pick draws from these
   shareTemplate: string;
 }
 

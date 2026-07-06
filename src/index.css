@@ -304,6 +304,31 @@ input:focus { border-color: var(--teal) !important; }
 .swipe-badge.nope { left: 20px; color: var(--stamp); border-color: var(--stamp); transform: rotate(-14deg); }
 .swipe-badge.save { right: 20px; color: var(--go); border-color: var(--go); transform: rotate(14deg); }
 .card-lesson { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ---- daily treasure chest + gold challenge card ---- */
+.chest-btn { display: inline-block; padding: 6px; border-radius: 28px; }
+.chest-btn:active { transform: scale(0.96); }
+.chest-bob { animation: chest-bob 2.6s ease-in-out infinite; transform-origin: center bottom; }
+@keyframes chest-bob {
+  0%, 100% { transform: translateY(0) rotate(-1.5deg); }
+  50% { transform: translateY(-7px) rotate(1.5deg); }
+}
+.daily-card {
+  background: var(--paper-card);
+  border: 2px solid var(--gold);
+  border-radius: 22px; padding: 20px;
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--gold) 20%, transparent), var(--shadow);
+  cursor: pointer;
+}
+.daily-card:active { transform: scale(0.99); }
+.daily-reveal { animation: daily-in 0.42s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes daily-in {
+  from { opacity: 0; transform: scale(0.92) translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chest-bob, .daily-reveal { animation: none; }
+}
 /* Short screens (SE, older phones): fit the card so nothing clips. */
 @media (max-height: 720px) {
   .deck-stack { min-height: 240px; }

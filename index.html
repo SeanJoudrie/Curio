@@ -14,13 +14,17 @@
     <style>
       body{background:#FBEFDD}
       @media(prefers-color-scheme:dark){body{background:#201826}}
-      #splash{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#FBEFDD;z-index:50;transition:opacity .4s ease}
-      #splash .logo{width:64px;height:64px;animation:sp-pulse 1.6s ease-in-out infinite}
-      #splash .wm{font-family:ui-serif,Georgia,serif;font-size:26px;font-weight:600;color:#2B2233;letter-spacing:-.01em}
-      #splash .tag{font-family:ui-monospace,monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#F15A38}
-      @keyframes sp-pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.06);opacity:.8}}
+      #splash{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#FBEFDD;z-index:50;transition:opacity .38s ease}
+      #splash .logo{width:78px;height:78px;animation:sp-pop .68s cubic-bezier(.2,.9,.25,1.35) both}
+      #splash .wm{font-family:ui-serif,Georgia,serif;font-size:27px;font-weight:600;color:#2B2233;letter-spacing:-.01em;animation:sp-rise .5s ease .26s both}
+      #splash .tag{font-family:ui-monospace,monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#F15A38;animation:sp-rise .5s ease .38s both}
+      @keyframes sp-pop{0%{transform:scale(.2);opacity:0}62%{transform:scale(1.12);opacity:1}100%{transform:scale(1);opacity:1}}
+      @keyframes sp-rise{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+      /* on exit, the logo expands as the splash reveals the app (old-Twitter style) */
+      #splash.hiding{opacity:0}
+      #splash.hiding .logo{transform:scale(1.55);opacity:0;transition:transform .42s ease,opacity .42s ease;animation:none}
       @media(prefers-color-scheme:dark){#splash{background:#201826}#splash .wm{color:#F3ECFA}#splash .tag{color:#FF7A56}}
-      @media(prefers-reduced-motion:reduce){#splash .logo{animation:none}}
+      @media(prefers-reduced-motion:reduce){#splash .logo,#splash .wm,#splash .tag{animation:none}#splash.hiding .logo{transition:opacity .3s ease;transform:none}}
     </style>
   </head>
   <body>
@@ -31,12 +35,11 @@
       <div class="tag">one small thing a day</div>
     </div>
     <script>
-      // fade the splash once the app has painted
+      // let the logo pop in, hold a beat, then expand-and-reveal the app
       window.addEventListener("DOMContentLoaded", () => {
         const s = document.getElementById("splash");
-        const hide = () => { if (s) { s.style.opacity = "0"; setTimeout(() => s.remove(), 400); } };
-        // hide shortly after mount; the app also clears it via #root children
-        setTimeout(hide, 650);
+        const hide = () => { if (s) { s.classList.add("hiding"); setTimeout(() => s.remove(), 430); } };
+        setTimeout(hide, 950);
       });
     </script>
     <script type="module" src="/src/main.tsx"></script>

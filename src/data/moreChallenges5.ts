@@ -1,0 +1,121 @@
+import type { Challenge } from "../types";
+
+// The daily "favorites": more adventurous, more story-worthy, the kind of thing
+// you'd actually tell someone about ("today I was dared to find a frog"). These
+// carry featured:true so the treasure-chest daily pick draws from them. Same
+// voice (CURIO.md §12). -3xx id range.
+const C = (c: Challenge): Challenge => c;
+
+export const MORE5: Challenge[] = [
+C({ id: "OUT-300", skillId: "OUT", title: "Find a frog in the wild", level: "digin", together: true, funnyResultsExpected: true, featured: true,
+  microLesson: "Frogs give themselves away by sound and stillness — follow a chorus at dusk to the water's edge, then scan the shallows and lily pads for a pair of eyes just breaking the surface.",
+  task: "Go to any pond, creek, or ditch and don't leave until you've actually spotted a frog or toad. Get a photo if you can.",
+  needs: ["Water nearby (a pond, creek, park)", "Quiet feet", "Your phone camera"],
+  encouragement: "You might just get muddy and hear them without seeing one — that's still a real hunt, and they'll be there next damp evening. Finding one feels absurdly triumphant.",
+  resources: { inspiration: "Dusk after rain is prime frog time.", goDeeper: "Learn one local frog's call so you can name it by ear." },
+  budget: { time: "1h", cost: "free", setting: "outdoors" }, shareTemplate: "Today I was dared to find a frog in the wild. Reader, I found the frog. 🐸" }),
+
+C({ id: "CUL-300", skillId: "CUL", title: "Eat a cuisine you've never tried", level: "dabble", together: true, funnyResultsExpected: false, featured: true,
+  microLesson: "Every cuisine has a 'gateway dish' locals recommend to newcomers — ask the staff 'what should a first-timer order?' and you'll get the real thing, not the safe thing.",
+  task: "Find a restaurant serving a cuisine you've genuinely never eaten — Ethiopian, Nepali, Peruvian, Georgian, whatever's near — and order the dish they'd give a first-timer.",
+  needs: ["A cuisine you've never had", "A little sense of adventure", "An appetite"],
+  encouragement: "You might not love every bite — that's the point, you're mapping new territory. Even a 'not for me' is a story and a data point. Ask what things are called.",
+  resources: { inspiration: "The staff's face when you ask for their favorite is worth the trip alone.", goDeeper: "Learn to cook the one dish you loved most." },
+  budget: { time: "1h", cost: "splurge", setting: "errand" }, shareTemplate: "Tried a whole cuisine for the first time tonight. New favorite unlocked. 🍽️" }),
+
+C({ id: "CUL-301", skillId: "CUL", title: "Order the most unfamiliar thing on the menu", level: "dabble", together: true, funnyResultsExpected: true, featured: true,
+  microLesson: "The dishes you skip are usually the ones the kitchen is proudest of — the unfamiliar name is often the house specialty, not a trap.",
+  task: "At any restaurant, order the one thing on the menu you understand least — the dish you'd never normally pick. Eat all of it.",
+  needs: ["A menu with something mysterious on it", "Nerve", "An open mind"],
+  encouragement: "Worst case, it's a funny 'well, now I know' — best case, you find the thing you'll always order here. Either way you win a story.",
+  resources: { inspiration: "The dish you can't pronounce is often the best one.", goDeeper: "Ask the server what it is only AFTER your first bite." },
+  budget: { time: "1h", cost: "cheap", setting: "errand" }, shareTemplate: "Ordered the one thing on the menu I didn't understand. No regrets (mostly). 🍴" }),
+
+C({ id: "OUT-301", skillId: "OUT", title: "Ride to a random stop and explore", level: "digin", together: true, funnyResultsExpected: false, featured: true,
+  microLesson: "The best way to see your own city fresh is to remove the destination — with nowhere to be, you start noticing the shopfronts, murals, and side streets your commute trained you to ignore.",
+  task: "Get on a bus or train, pick a stop you've never gotten off at (roll a die for how many stops), get off, and explore for 30 minutes on foot.",
+  needs: ["Transit nearby", "A way to get back", "30 curious minutes"],
+  encouragement: "You might land somewhere unremarkable — walk anyway; the ordinary is interesting when it's unfamiliar. You'll find at least one thing worth going back for.",
+  resources: { inspiration: "Every neighborhood has a secret its regulars love.", goDeeper: "Buy something small from a shop you'd never have found." },
+  budget: { time: "1h", cost: "cheap", setting: "outdoors" }, shareTemplate: "Got off at a random stop and explored a part of my city I'd never seen. 🚉" }),
+
+C({ id: "SOC-300", skillId: "SOC", title: "Learn a stranger's whole story", level: "digin", together: false, funnyResultsExpected: false, featured: true,
+  microLesson: "People love to be genuinely asked about themselves — the trick is a real question ('what brought you here?') and then just listening, following each answer with 'and then what?' instead of talking about yourself.",
+  task: "Strike up a real conversation with a stranger — a barista, a neighbor, someone in line — and come away actually knowing one true thing about their life.",
+  needs: ["A stranger who isn't in a rush", "One genuine question", "Real curiosity"],
+  encouragement: "It might stay small talk, and that's fine — you tried, which most people never do. When it opens up, you'll remember it for weeks.",
+  resources: { inspiration: "Everyone is the main character of a story you've never heard.", goDeeper: "Tell them one true thing back." },
+  budget: { time: "15m", cost: "free", setting: "errand" }, shareTemplate: "Talked to a stranger today and heard a story I'll never forget. 💬" }),
+
+C({ id: "OUT-302", skillId: "OUT", title: "Catch a sunrise somewhere new", level: "digin", together: true, funnyResultsExpected: false, featured: true,
+  microLesson: "The sky's best few minutes come BEFORE the sun clears the horizon — the 'civil twilight' when clouds catch pink and gold. Arrive 20 minutes early or you'll miss the good part.",
+  task: "Get up early and watch the sunrise from a spot you've never seen one — a hill, a rooftop, a beach, a field. Stay until the sun is fully up.",
+  needs: ["An early alarm", "A spot with an east-facing view", "A warm layer"],
+  encouragement: "Even a cloudy sunrise rewards the effort — you were awake for the quietest, most private hour of the day. Almost nobody else was.",
+  resources: { inspiration: "The world before everyone else is up feels like it's yours.", goDeeper: "Bring coffee and stay for the whole thing, no phone." },
+  budget: { time: "1h", cost: "free", setting: "outdoors" }, shareTemplate: "Watched the sunrise from somewhere new. Had the whole morning to myself. 🌅" }),
+
+C({ id: "CUL-302", skillId: "CUL", title: "Cook a dish from a random country", level: "digin", together: true, funnyResultsExpected: true, featured: true,
+  microLesson: "Nearly every country has one iconic home dish that's genuinely beginner-friendly — search '[country] easy traditional recipe' and you'll almost always find a one-pan classic grandparents actually make.",
+  task: "Pick a country at random (spin a globe, or random-number a list), find its most-loved simple dish, and cook it tonight.",
+  needs: ["A random country", "A recipe", "Its key ingredients"],
+  encouragement: "It might not taste like the real thing — you've never had the real thing to compare, so it's perfect by definition. Now you have a reason to seek out the real one.",
+  resources: { inspiration: "You'll learn more about a place from its dinner than its Wikipedia page.", goDeeper: "Play the country's music while you cook." },
+  budget: { time: "1h", cost: "cheap", setting: "home" }, shareTemplate: "Spun a globe and cooked whatever it landed on tonight. 🌍🍲" }),
+
+C({ id: "OUT-303", skillId: "OUT", title: "Spot an actual planet tonight", level: "dabble", together: true, funnyResultsExpected: false, featured: true,
+  microLesson: "Planets don't twinkle — stars do. That steady, extra-bright 'star' near the horizon after sunset is almost always Venus or Jupiter. A free sky app will name it and point you right at it.",
+  task: "Go outside after dark, open a sky-map app, and find and look at a real planet with your own eyes. Bonus: through binoculars.",
+  needs: ["A clear-ish night", "A free sky-map app", "A dark-ish spot"],
+  encouragement: "Clouds tonight? Try tomorrow, guilt-free. The moment you realize that bright dot is a whole other world is quietly staggering.",
+  resources: { inspiration: "That steady bright dot has been watched by every human who ever lived.", goDeeper: "Point binoculars at Jupiter and look for its four moons." },
+  budget: { time: "15m", cost: "free", setting: "outdoors" }, shareTemplate: "Looked at an actual planet with my own eyes tonight. That's Jupiter. 🪐" }),
+
+C({ id: "MOV-300", skillId: "MOV", title: "Drop into a class you'd never pick", level: "digin", together: true, funnyResultsExpected: true, featured: true,
+  microLesson: "Most studios have a free or cheap first-timer class precisely because they know beginners feel awkward — everyone in the room was new once, and instructors love a fresh face who's just trying.",
+  task: "Find a movement class you'd never normally do — aerial, salsa, boxing, pole, tap, capoeira — and go to one beginner session.",
+  needs: ["A class near you", "A first-timer's willingness to be bad at something", "Water"],
+  encouragement: "You'll be clumsy and that's the entire point — everyone remembers being new, and nobody's watching you. You'll leave buzzing whether you were good or not.",
+  resources: { inspiration: "The class you'd never pick is exactly the one worth trying.", goDeeper: "Go back a second time and feel the difference." },
+  budget: { time: "1h", cost: "splurge", setting: "errand" }, shareTemplate: "Took a class I'd never normally try today. Terrible at it. Loved it. 🤸" }),
+
+C({ id: "OUT-304", skillId: "OUT", title: "Get pleasantly lost in a new neighborhood", level: "dabble", together: true, funnyResultsExpected: false, featured: true,
+  microLesson: "Walking without a route flips your brain from autopilot to attention — the same reason travel feels vivid. You don't need a plane; an unfamiliar few blocks does most of the work.",
+  task: "Go to a part of your town you've never walked, put the phone away, and wander for 30 minutes with no destination. Notice five things.",
+  needs: ["An unfamiliar neighborhood", "Comfortable shoes", "A loose sense of where home is"],
+  encouragement: "You can't do this wrong — there's no goal but noticing. The best finds (a mural, a tiny shop, a great tree) are the ones you weren't looking for.",
+  resources: { inspiration: "You live near a hundred streets you've never set foot on.", goDeeper: "Photograph the single most surprising thing you find." },
+  budget: { time: "1h", cost: "free", setting: "outdoors" }, shareTemplate: "Wandered a new neighborhood with no destination today. Found a whole world. 🚶" }),
+
+C({ id: "CUL-303", skillId: "CUL", title: "Eat a fruit or vegetable you've never had", level: "dabble", together: true, funnyResultsExpected: true, featured: true,
+  microLesson: "Grocery produce sections hide dozens of things most people walk past — dragonfruit, romanesco, rambutan, celeriac. A quick search tells you how to eat any of them in one line.",
+  task: "Buy one fruit or vegetable you've genuinely never eaten, find out how to prepare it, and actually eat it.",
+  needs: ["A produce aisle or market", "Openness to a weird texture", "A phone to look up how to eat it"],
+  encouragement: "It might be slimy, sour, or just fine — every reaction is a small discovery. You'll never walk past it as a stranger again.",
+  resources: { inspiration: "There are fruits you've never even seen for sale a mile from you.", goDeeper: "Try the weirdest-looking thing at an international grocery." },
+  budget: { time: "15m", cost: "cheap", setting: "errand" }, shareTemplate: "Ate a fruit I'd never even seen before today. Verdict: surprising. 🐉" }),
+
+C({ id: "NAT-300", skillId: "NAT", title: "Photograph a wild animal in the act", level: "digin", together: false, funnyResultsExpected: true, featured: true,
+  microLesson: "Wildlife photos come from patience, not zoom — find where an animal already is (a feeder, a pond, a hedge), go still, and wait. Movement scares; stillness gets you the shot.",
+  task: "Get a real photo of a wild animal doing something — a bird landing, a squirrel eating, a bug mid-crawl. Not a distant blob; a real moment.",
+  needs: ["Somewhere wildlife hangs out", "Patience and stillness", "Your phone camera"],
+  encouragement: "You'll get twenty empty branches and blurry tails before one keeper — that's exactly the ratio real wildlife photographers live with. The keeper is worth it.",
+  resources: { inspiration: "The stiller you get, the more the world forgets you're there.", goDeeper: "Learn the name of whatever you photographed." },
+  budget: { time: "1h", cost: "free", setting: "outdoors" }, shareTemplate: "Got a real photo of a wild animal mid-moment today. Patience paid off. 📷🐿️" }),
+
+C({ id: "SOC-301", skillId: "SOC", title: "Say yes to the next thing you'd decline", level: "dabble", together: false, funnyResultsExpected: false, featured: true,
+  microLesson: "Most missed experiences aren't refused on purpose — they're declined by reflex ('I'm tired,' 'maybe next time'). Noticing the reflex and overriding it once is how the best stories start.",
+  task: "The next small invitation or spontaneous idea you'd normally turn down today — say yes to it, and actually go do it.",
+  needs: ["An invitation or impulse", "Awareness of your auto-no", "A free evening"],
+  encouragement: "It might be nothing special — but you'll have proven you can override the reflex, and sometimes 'yes' turns an ordinary Tuesday into a story.",
+  resources: { inspiration: "The word 'yes' is where most adventures actually begin.", goDeeper: "Notice how often you almost say no first." },
+  budget: { time: "1h", cost: "free", setting: "outdoors" }, shareTemplate: "Said yes to the thing I'd normally skip today. Glad I did. ✨" }),
+
+C({ id: "OUT-305", skillId: "OUT", title: "Find your town's oldest building", level: "digin", together: true, funnyResultsExpected: false, featured: true,
+  microLesson: "Almost every town keeps a record of its oldest surviving building — a local history society, a plaque, or a quick search will name it. Standing where people stood centuries ago rewires how you see the place.",
+  task: "Find out what the oldest building in your town is, go stand in front of it, and learn one true story about it.",
+  needs: ["A phone to research", "A way to get there", "A little curiosity about your own place"],
+  encouragement: "Even if it's a modest old barn or church, knowing it's the oldest thing around changes how you see your whole town. You'll notice old things everywhere now.",
+  resources: { inspiration: "You walk past history every day without knowing it.", goDeeper: "Find the second-oldest, and the story of what's gone." },
+  budget: { time: "1h", cost: "free", setting: "outdoors" }, shareTemplate: "Went and stood in front of the oldest building in my town today. 🏛️" }),
+];
